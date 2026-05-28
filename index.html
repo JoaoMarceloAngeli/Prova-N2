@@ -39,29 +39,32 @@
             >SG Cursos</button>
           </nav>
 
-          <div className="container py-5">
-            {page === "home" && (
-              <div className="text-center py-5">
-                <h2 className="fw-bold">Bem-vindo ao Dev.JM</h2>
-              </div>
-            )}
+          {page === "home" && (
+            <div className="text-center py-5 mt-5">
+              <h2 className="fw-bold">Bem-vindo ao Dev.JM</h2>
+            </div>
+          )}
 
-            {page === "sgcursos" && (
-              <div>
-                <ul className="nav nav-tabs mb-4">
+          {page === "sgcursos" && (
+            <div className="d-flex" style={{minHeight: "calc(100vh - 56px)"}}>
+              <div className="bg-white border-end p-3" style={{width: 200, minWidth: 200}}>
+                <ul className="nav flex-column gap-1">
                   {subPages.map(s => (
                     <li className="nav-item" key={s}>
                       <button
-                        className={"nav-link " + (sub === s ? "active" : "")}
+                        className={"btn btn-link text-decoration-none text-start w-100 px-3 py-2 rounded " +
+                          (sub === s ? "fw-bold text-dark bg-light" : "text-secondary")}
                         onClick={() => setSub(s)}
                       >{s}</button>
                     </li>
                   ))}
                 </ul>
+              </div>
+              <div className="p-5">
                 <h3 className="fw-semibold">{sub}</h3>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       );
     }
