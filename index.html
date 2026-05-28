@@ -24,22 +24,47 @@
     function App() {
       const [page, setPage] = useState("home");
       const [sub, setSub] = useState("Trilhas");
+      const [open, setOpen] = useState(true);
 
       return (
-        <div>
-          <nav className="navbar bg-white border-bottom shadow-sm px-4 py-2">
-            <span className="fw-bold fs-5 me-4">SG Cursos</span>
-            <button
-              className={"btn btn-link text-decoration-none p-0 me-3 " + (page === "home" ? "fw-bold text-dark" : "text-primary")}
-              onClick={() => setPage("home")}
-            >Home</button>
-            <button
-              className={"btn btn-link text-decoration-none p-0 " + (page === "sgcursos" ? "fw-bold text-dark" : "text-primary")}
-              onClick={() => setPage("sgcursos")}
-            >SG Cursos</button>
-          </nav>
+        <div className="d-flex" style={{minHeight: "100vh"}}>
 
-          <div className="container py-5">
+          {/* Sidebar */}
+          <div className="bg-white border-end d-flex flex-column"
+            style={{width: open ? 200 : 52, minWidth: open ? 200 : 52, transition: "width 0.2s"}}>
+
+            {/* Toggle */}
+            <div className="p-2 border-bottom">
+              <button className="btn btn-light w-100 text-start" onClick={() => setOpen(!open)}>
+                {open ? "✕  SG Cursos" : "☰"}
+              </button>
+            </div>
+
+            {/* Nav items */}
+            <ul className="nav flex-column gap-1 p-2">
+              <li className="nav-item">
+                <button
+                  className={"btn btn-link text-decoration-none text-start w-100 px-2 py-2 rounded " +
+                    (page === "home" ? "fw-bold text-dark bg-light" : "text-secondary")}
+                  onClick={() => setPage("home")}
+                >
+                  {open ? "🏠 Home" : "🏠"}
+                </button>
+              </li>
+              <li className="nav-item">
+                <button
+                  className={"btn btn-link text-decoration-none text-start w-100 px-2 py-2 rounded " +
+                    (page === "sgcursos" ? "fw-bold text-dark bg-light" : "text-secondary")}
+                  onClick={() => setPage("sgcursos")}
+                >
+                  {open ? "📚 SG Cursos" : "📚"}
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* Conteúdo */}
+          <div className="flex-grow-1 p-5">
             {page === "home" && (
               <div className="text-center py-5">
                 <h2 className="fw-bold">Bem-vindo ao Dev.JM</h2>
