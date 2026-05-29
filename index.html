@@ -1318,20 +1318,27 @@
     const CERT_DATE = new Date().toLocaleDateString("pt-BR");
     function certCode(id) { return "JM-" + new Date().getFullYear() + "-" + String(id).slice(-5).toUpperCase().padStart(5,"0"); }
 
-    function CertificadoCard({ course }) {
+    function CertificadoCard({ course, studentName, isTrilha, trailCourseCount }) {
       const [open, setOpen] = useState(false);
+      const iconBg    = isTrilha ? "#e8f6f0"      : "#e8f0fe";
+      const iconColor = isTrilha ? "#0d7a55"       : "var(--jm-blue)";
+      const icon      = isTrilha ? "bi-map-fill"  : "bi-award-fill";
+      const certLabel = isTrilha ? "Trilha: " + course.name : course.name;
+      const certSub   = isTrilha
+        ? <><i className="bi bi-map me-1"/>{trailCourseCount} curso(s) · Trilha concluída em {CERT_DATE}</>
+        : <>{course.workload && <><i className="bi bi-clock me-1"/>{course.workload} · </>}Concluído em {CERT_DATE}</>;
       return (
         <div className="mb-3">
           <div className="adm-item-row" style={{background:"#fff"}}>
-            <div style={{width:40,height:40,borderRadius:10,background:"#e8f6f0",color:"#0d7a55",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:"1.2rem"}}>
-              <i className="bi bi-award-fill" />
+            <div style={{width:40,height:40,borderRadius:10,background:iconBg,color:iconColor,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:"1.2rem"}}>
+              <i className={"bi " + icon} />
             </div>
             <div className="flex-grow-1">
-              <div className="fw-bold" style={{color:"var(--jm-navy)",fontSize:".93rem"}}>{course.name}</div>
-              <div className="text-muted" style={{fontSize:".77rem"}}>
-                {course.workload && <><i className="bi bi-clock me-1"/>{course.workload} · </>}
-                Concluído em {CERT_DATE}
+              <div className="d-flex align-items-center gap-2 flex-wrap">
+                <span className="fw-bold" style={{color:"var(--jm-navy)",fontSize:".93rem"}}>{certLabel}</span>
+                {isTrilha && <span className="badge rounded-pill" style={{background:"#e8f6f0",color:"#0d7a55",fontSize:".7rem"}}>Trilha</span>}
               </div>
+              <div className="text-muted" style={{fontSize:".77rem"}}>{certSub}</div>
             </div>
             <button className="btn btn-sm fw-semibold"
               style={{background:open?"#f0f4ff":"var(--jm-grad)",color:open?"var(--jm-mid)":"#fff",border:open?"1px solid #d0dcf5":"none",borderRadius:8,fontSize:".82rem"}}
@@ -1351,10 +1358,15 @@
                 <div className="cert-title">Certificado de Conclusão</div>
                 <div className="cert-divider" />
                 <p className="text-muted mb-2" style={{fontSize:".88rem"}}>Certificamos que</p>
-                <div className="cert-student mb-3">Nome do Aluno</div>
-                <p className="mb-1" style={{fontSize:".92rem",color:"#555"}}>concluiu com êxito o curso</p>
+                <div className="cert-student mb-3">{studentName || "Aluno"}</div>
+                <p className="mb-1" style={{fontSize:".92rem",color:"#555"}}>
+                  {isTrilha ? "concluiu com êxito a trilha de aprendizado" : "concluiu com êxito o curso"}
+                </p>
                 <div className="cert-course mb-1">{course.name}</div>
-                {course.workload && <p className="text-muted mb-3" style={{fontSize:".85rem"}}>com carga horária de <strong>{course.workload}</strong></p>}
+                {isTrilha
+                  ? <p className="text-muted mb-3" style={{fontSize:".85rem"}}>{trailCourseCount} curso(s) concluído(s)</p>
+                  : course.workload && <p className="text-muted mb-3" style={{fontSize:".85rem"}}>com carga horária de <strong>{course.workload}</strong></p>
+                }
                 <div className="cert-divider" />
                 <div className="d-flex justify-content-center gap-5 mt-3">
                   <div>
@@ -1365,7 +1377,7 @@
                   <div>
                     <div className="cert-sig-line" />
                     <div style={{fontSize:".78rem",color:"#555"}}>Código do certificado</div>
-                    <div style={{fontSize:".8rem",fontWeight:600,color:"var(--jm-mid)",fontFamily:"monospace"}}>{certCode(course.id)}</div>
+                    <div style={{fontSize:".8rem",fontWeight:600,color:"var(--jm-mid)",fontFamily:"monospace"}}>{certCode(isTrilha ? "T"+course.id : course.id)}</div>
                   </div>
                 </div>
                 <div className="mt-4 pt-3" style={{borderTop:"1px dashed #d0dcf5"}}>
@@ -1382,6 +1394,35 @@
     function JmCursosPage({ sub, setSub, courses, planos, trilhas, currentUser, subscriptions, onSelectPlan }) {
       const TABS = ["Trilhas","Cursos","Meu Plano","Certificados"];
       const [playing, setPlaying] = useState(null);
+
+      // ── progresso ────────────────────────────────────────────────────────────
+      const watchedKey = "jm_watched_" + (currentUser?.id || "anon");
+      const [watched, setWatched] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(watchedKey) || "[]"); } catch { return []; }
+      });
+      function markWatched(id) {
+        if (watched.includes(id)) return;
+        const n = [...watched, id];
+        setWatched(n);
+        localStorage.setItem(watchedKey, JSON.stringify(n));
+      }
+      function isCourseComplete(c) { return !c.videoUrl || watched.includes(c.id); }
+      function isTrailComplete(t) {
+        const tc = courses.filter(c => (t.courseIds||[]).includes(c.id));
+        return tc.length > 0 && tc.every(c => isCourseComplete(c));
+      }
+
+      // ── certificados solicitados ─────────────────────────────────────────────
+      const issuedKey = "jm_issued_" + (currentUser?.id || "anon");
+      const [issued, setIssued] = useState(() => {
+        try { return JSON.parse(localStorage.getItem(issuedKey) || "[]"); } catch { return []; }
+      });
+      function requestCert(id) {
+        if (issued.some(c => c.id === id)) return;
+        const n = [...issued, { id, issuedAt: new Date().toLocaleDateString("pt-BR") }];
+        setIssued(n);
+        localStorage.setItem(issuedKey, JSON.stringify(n));
+      }
 
       return (
         <div>
@@ -1403,14 +1444,21 @@
                       <div className="course-card">
                         <div className="course-thumb"><i className="bi bi-play-circle-fill" /></div>
                         <div className="p-3">
-                          <div className="fw-bold mb-1" style={{color:"var(--jm-navy)"}}>{c.name}</div>
+                          <div className="d-flex align-items-start justify-content-between gap-2 mb-1">
+                            <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{c.name}</div>
+                            {watched.includes(c.id) && (
+                              <span className="badge flex-shrink-0" style={{background:"#e8f6f0",color:"#0d7a55",fontSize:".7rem",borderRadius:20}}>
+                                <i className="bi bi-check-circle-fill me-1"/>Concluído
+                              </span>
+                            )}
+                          </div>
                           {c.description && <p className="text-muted mb-2" style={{fontSize:".83rem"}}>{c.description}</p>}
                           {c.videoUrl && (
                             <button className="btn btn-sm w-100 fw-semibold"
-                              style={{background:"var(--jm-grad)",color:"#fff",border:"none",borderRadius:8}}
-                              onClick={() => setPlaying(playing===c.id ? null : c.id)}>
-                              <i className={"bi bi-" + (playing===c.id ? "chevron-up":"play-fill") + " me-1"} />
-                              {playing===c.id ? "Fechar" : "Assistir"}
+                              style={{background:watched.includes(c.id)?"#e8f0fe":"var(--jm-grad)",color:watched.includes(c.id)?"var(--jm-mid)":"#fff",border:watched.includes(c.id)?"1px solid #d0dcf5":"none",borderRadius:8}}
+                              onClick={() => { const n=playing===c.id?null:c.id; setPlaying(n); if(n) markWatched(c.id); }}>
+                              <i className={"bi bi-" + (playing===c.id?"chevron-up":watched.includes(c.id)?"play-circle":"play-fill") + " me-1"} />
+                              {playing===c.id ? "Fechar" : watched.includes(c.id) ? "Assistir novamente" : "Assistir"}
                             </button>
                           )}
                           {playing === c.id && c.videoUrl && (
@@ -1524,10 +1572,27 @@
                                 <i className="bi bi-lightbulb me-1" /><strong>O que você vai aprender:</strong> {t.goal}
                               </div>
                             )}
-                            <div className="d-flex gap-3 mb-3" style={{fontSize:".8rem",color:"#6b7a9a"}}>
+                            <div className="d-flex gap-3 mb-2" style={{fontSize:".8rem",color:"#6b7a9a"}}>
                               <span><i className="bi bi-play-circle me-1" />{tCourses.length} curso(s)</span>
                               {tHours > 0 && <span><i className="bi bi-clock me-1" />{tHours}h no total</span>}
                             </div>
+                            {tCourses.length > 0 && (() => {
+                              const done = tCourses.filter(c => isCourseComplete(c)).length;
+                              const pct  = Math.round(done / tCourses.length * 100);
+                              return (
+                                <div className="mb-3">
+                                  <div className="d-flex justify-content-between mb-1" style={{fontSize:".75rem"}}>
+                                    <span className="text-muted">{done}/{tCourses.length} concluídos</span>
+                                    {pct===100
+                                      ? <span className="fw-semibold" style={{color:"#0d7a55"}}><i className="bi bi-award-fill me-1"/>Trilha concluída!</span>
+                                      : <span className="text-muted">{pct}%</span>}
+                                  </div>
+                                  <div style={{height:6,background:"#e3e8f0",borderRadius:6,overflow:"hidden"}}>
+                                    <div style={{height:"100%",width:pct+"%",background:pct===100?"#0d7a55":"var(--jm-grad)",borderRadius:6,transition:"width .4s"}} />
+                                  </div>
+                                </div>
+                              );
+                            })()}
                             {tCourses.length > 0 && (
                               <div>
                                 <div className="fw-semibold mb-1" style={{fontSize:".78rem",color:"var(--jm-navy)",textTransform:"uppercase",letterSpacing:".5px"}}>Cursos incluídos</div>
@@ -1548,14 +1613,90 @@
                 </div>
           )}
 
-          {sub === "Certificados" && (
-            courses.length === 0
-              ? <p className="text-muted">Nenhum curso disponível ainda. Os certificados aparecerão aqui após concluir um curso.</p>
-              : <div>
-                  <p className="text-muted mb-3" style={{fontSize:".88rem"}}><i className="bi bi-info-circle me-1"/>Os certificados são emitidos automaticamente ao concluir cada curso.</p>
-                  {courses.map(c => <CertificadoCard key={c.id} course={c} />)}
-                </div>
-          )}
+          {sub === "Certificados" && (() => {
+            const completedCourses  = courses.filter(c => c.videoUrl && watched.includes(c.id));
+            const completedTrails   = trilhas.filter(t => isTrailComplete(t));
+            const issuedCourses     = completedCourses.filter(c => issued.some(i => i.id === c.id));
+            const pendingCourses    = completedCourses.filter(c => !issued.some(i => i.id === c.id));
+            const issuedTrails      = completedTrails.filter(t => issued.some(i => i.id === "T"+t.id));
+            const pendingTrails     = completedTrails.filter(t => !issued.some(i => i.id === "T"+t.id));
+            const hasPending        = pendingCourses.length > 0 || pendingTrails.length > 0;
+            const hasIssued         = issuedCourses.length > 0 || issuedTrails.length > 0;
+
+            if (!hasPending && !hasIssued) return (
+              <div className="text-center py-5 text-muted">
+                <i className="bi bi-award" style={{fontSize:"3.5rem",opacity:.3,display:"block",marginBottom:"1rem"}} />
+                <p className="fw-semibold mb-1" style={{color:"var(--jm-navy)"}}>Nenhum certificado disponível</p>
+                <p style={{fontSize:".88rem"}}>Assista aos vídeos dos cursos para desbloquear seus certificados.</p>
+              </div>
+            );
+
+            return (
+              <div>
+                {hasPending && (
+                  <div className="mb-4">
+                    <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{color:"var(--jm-navy)"}}>
+                      <i className="bi bi-unlock-fill" style={{color:"#0d7a55"}} />Disponíveis para solicitar
+                    </h6>
+                    {pendingTrails.map(t => {
+                      const tc = courses.filter(c => (t.courseIds||[]).includes(c.id));
+                      return (
+                        <div key={t.id} className="adm-item-row mb-2" style={{background:"#fff"}}>
+                          <div style={{width:40,height:40,borderRadius:10,background:"#e8f6f0",color:"#0d7a55",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:"1.2rem"}}>
+                            <i className="bi bi-map-fill" />
+                          </div>
+                          <div className="flex-grow-1">
+                            <div className="fw-bold" style={{color:"var(--jm-navy)",fontSize:".93rem"}}>{t.name}</div>
+                            <div className="text-muted" style={{fontSize:".77rem"}}>
+                              <span className="badge rounded-pill me-1" style={{background:"#e8f6f0",color:"#0d7a55",fontSize:".7rem"}}>Trilha</span>
+                              {tc.length} curso(s) concluído(s)
+                            </div>
+                          </div>
+                          <button className="btn btn-sm fw-semibold"
+                            style={{background:"var(--jm-grad)",color:"#fff",border:"none",borderRadius:8,fontSize:".82rem",whiteSpace:"nowrap"}}
+                            onClick={() => requestCert("T"+t.id)}>
+                            <i className="bi bi-award me-1"/>Solicitar Certificado
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {pendingCourses.map(c => (
+                      <div key={c.id} className="adm-item-row mb-2" style={{background:"#fff"}}>
+                        <div style={{width:40,height:40,borderRadius:10,background:"#e8f0fe",color:"var(--jm-blue)",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:"1.2rem"}}>
+                          <i className="bi bi-award" />
+                        </div>
+                        <div className="flex-grow-1">
+                          <div className="fw-bold" style={{color:"var(--jm-navy)",fontSize:".93rem"}}>{c.name}</div>
+                          <div className="text-muted" style={{fontSize:".77rem"}}>
+                            {c.workload && <><i className="bi bi-clock me-1"/>{c.workload} · </>}Curso concluído
+                          </div>
+                        </div>
+                        <button className="btn btn-sm fw-semibold"
+                          style={{background:"var(--jm-grad)",color:"#fff",border:"none",borderRadius:8,fontSize:".82rem",whiteSpace:"nowrap"}}
+                          onClick={() => requestCert(c.id)}>
+                          <i className="bi bi-award me-1"/>Solicitar Certificado
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {hasIssued && (
+                  <div>
+                    <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{color:"var(--jm-navy)"}}>
+                      <i className="bi bi-award-fill" style={{color:"var(--jm-blue)"}} />Meus Certificados
+                    </h6>
+                    {issuedTrails.map(t => {
+                      const tc = courses.filter(c => (t.courseIds||[]).includes(c.id));
+                      return <CertificadoCard key={"t-"+t.id} course={t} studentName={currentUser?.name} isTrilha={true} trailCourseCount={tc.length} />;
+                    })}
+                    {issuedCourses.map(c => (
+                      <CertificadoCard key={c.id} course={c} studentName={currentUser?.name} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
         </div>
       );
