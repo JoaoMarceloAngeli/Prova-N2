@@ -698,31 +698,35 @@
           </div>
 
           <div className="col-12 col-lg-7">
-            <div className="adm-card">
-              <h6 className="fw-bold mb-3" style={{color:"var(--jm-navy)"}}>
-                <i className="bi bi-list-ul me-2" style={{color:"var(--jm-blue)"}} />
-                Planos cadastrados <span className="badge ms-1 rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".75rem"}}>{planos.length}</span>
-              </h6>
-              {planos.length === 0 && <p className="text-muted" style={{fontSize:".88rem"}}>Nenhum plano ainda.</p>}
-              {planos.map(p => (
-                <div className="adm-item-row" key={p.id}>
-                  <div className="flex-grow-1">
-                    <div className="d-flex align-items-center gap-2">
-                      <span className="fw-semibold" style={{fontSize:".92rem",color:"var(--jm-navy)"}}>{p.name}</span>
-                      <span className="badge rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".7rem"}}>{p.period}</span>
+            {planos.length === 0 && (
+              <p className="text-muted mt-3" style={{fontSize:".88rem"}}>Nenhum plano ainda. Crie o primeiro ao lado.</p>
+            )}
+            <div className="row g-3">
+              {planos.map((p,i) => (
+                <div key={p.id} className="col-12 col-sm-6">
+                  <div style={{background:"#fff",borderRadius:14,border:"2px solid #e3e8f0",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",boxShadow:"0 2px 10px rgba(0,0,0,.04)",transition:"border-color .2s,box-shadow .2s",height:"100%"}}>
+                    <span className="badge mb-2 px-3" style={{background:"#e8f0fe",color:"var(--jm-mid)",borderRadius:20,fontSize:".82rem"}}>{p.period}</span>
+                    <div className="fw-bold fs-5 mb-1" style={{color:"var(--jm-navy)"}}>{p.name}</div>
+                    <div className="fw-bold my-3" style={{fontSize:"1.8rem",color:"var(--jm-blue)",lineHeight:1}}>
+                      {p.price}<span style={{fontSize:".82rem",fontWeight:400,color:"#888"}}>/{p.period}</span>
                     </div>
-                    <div className="fw-bold mt-1" style={{color:"var(--jm-blue)",fontSize:"1rem"}}>{p.price}</div>
-                    {p.features.length > 0 && (
-                      <div className="mt-1 d-flex flex-wrap gap-1">
-                        {p.features.map((f,i) => (
-                          <span key={i} style={{background:"#f0f4ff",color:"var(--jm-mid)",borderRadius:5,padding:"1px 7px",fontSize:".72rem"}}>{f}</span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="d-flex gap-1 flex-shrink-0">
-                    <button className="btn btn-sm btn-light" onClick={() => startEdit(p)} title="Editar"><i className="bi bi-pencil" /></button>
-                    <button className="btn btn-sm btn-light text-danger" onClick={() => remove(p.id)} title="Remover"><i className="bi bi-trash" /></button>
+                    <ul className="list-unstyled w-100 mb-4" style={{textAlign:"left"}}>
+                      {p.features.map((f,j) => (
+                        <li key={j} className="d-flex align-items-center gap-2 mb-1">
+                          <i className="bi bi-check-circle-fill" style={{color:"#0d7a55",flexShrink:0,fontSize:".85rem"}} />
+                          <span style={{fontSize:".87rem"}}>{f}</span>
+                        </li>
+                      ))}
+                      {p.features.length === 0 && <li className="text-muted" style={{fontSize:".85rem"}}>Sem benefícios</li>}
+                    </ul>
+                    <div className="d-flex gap-2 mt-auto">
+                      <button className="btn btn-sm btn-outline-primary px-3" onClick={() => startEdit(p)} title="Editar">
+                        <i className="bi bi-pencil me-1" />Editar
+                      </button>
+                      <button className="btn btn-sm btn-outline-danger px-3" onClick={() => remove(p.id)} title="Remover">
+                        <i className="bi bi-trash me-1" />Excluir
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -738,8 +742,7 @@
         ...s,
         user: usuarios.find(u => u.id === s.userId),
         plan: planos.find(p => p.id === s.planId),
-      }));
-      const ativos = enriched.filter(s => s.status === "ativo").length;
+      })).filter(s => s.status === "ativo");
 
       return (
         <div>
@@ -747,27 +750,8 @@
             <div className="adm-section-icon"><i className="bi bi-receipt" /></div>
             <div>
               <div className="fw-bold fs-5" style={{color:"var(--jm-navy)"}}>Assinaturas</div>
-              <div className="text-muted" style={{fontSize:".83rem"}}>Planos contratados pelos alunos</div>
+              <div className="text-muted" style={{fontSize:".83rem"}}>Planos ativos dos alunos</div>
             </div>
-          </div>
-          <div className="row g-3 mb-4">
-            {[
-              {label:"Total", value:subscriptions.length, color:"var(--jm-blue)", icon:"bi-receipt"},
-              {label:"Ativas", value:ativos, color:"#0d7a55", icon:"bi-check-circle-fill"},
-              {label:"Canceladas", value:subscriptions.length - ativos, color:"#c0392b", icon:"bi-x-circle-fill"},
-            ].map((s,i) => (
-              <div className="col-4" key={i}>
-                <div className="adm-stat-card d-flex align-items-center gap-3">
-                  <div style={{width:40,height:40,borderRadius:10,background:s.color+"1a",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem",flexShrink:0}}>
-                    <i className={"bi " + s.icon} />
-                  </div>
-                  <div>
-                    <div className="fw-bold lh-1" style={{fontSize:"1.4rem",color:s.color}}>{s.value}</div>
-                    <div className="text-muted mt-1" style={{fontSize:".74rem"}}>{s.label}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
           </div>
 
           <div className="adm-card">
@@ -951,7 +935,6 @@
       const setUsers = setUsuarios;
       const ativos   = users.filter(u => u.status==="ativo").length;
       const inativos = users.filter(u => u.status==="inativo").length;
-      function toggle(id)  { setUsers(prev => prev.map(u => u.id===id ? {...u,status:u.status==="ativo"?"inativo":"ativo"} : u)); }
       function remove(id) { if (window.confirm("Excluir este usuário?")) setUsers(prev => prev.filter(u => u.id!==id)); }
       return (
         <div>
@@ -961,10 +944,6 @@
               <div className="fw-bold fs-5" style={{color:"var(--jm-navy)"}}>Usuários</div>
               <div className="text-muted" style={{fontSize:".83rem"}}>Alunos registrados na plataforma</div>
             </div>
-          </div>
-          <div className="adm-info-banner">
-            <i className="bi bi-info-circle-fill me-2" />
-            Os alunos se cadastram pela tela de login. Aqui você visualiza e gerencia os acessos à plataforma.
           </div>
           <div className="row g-3 mb-4">
             {[{label:"Total de alunos",value:users.length,color:"var(--jm-blue)",icon:"bi-people-fill"},
@@ -1005,9 +984,6 @@
                   <span className="badge rounded-pill fw-semibold" style={u.status==="ativo"?{background:"#e8f6f0",color:"#0d7a55",fontSize:".74rem"}:{background:"#fff0f0",color:"#c0392b",fontSize:".74rem"}}>
                     {u.status==="ativo" ? "● Ativo" : "● Inativo"}
                   </span>
-                  <button className="btn btn-sm btn-light" title={u.status==="ativo"?"Desativar":"Ativar"} onClick={() => toggle(u.id)}>
-                    <i className={"bi bi-toggle-" + (u.status==="ativo"?"on text-success":"off text-danger")} style={{fontSize:"1.1rem"}} />
-                  </button>
                   <button className="btn btn-sm btn-light text-danger" title="Excluir" onClick={() => remove(u.id)}>
                     <i className="bi bi-trash" />
                   </button>
@@ -1482,26 +1458,33 @@
             return (
               <div>
                 {currentPlan && activeSub ? (
-                  <div className="mb-4 p-4 rounded-3" style={{border:"2px solid var(--jm-blue)",background:"linear-gradient(135deg,#e8f0fe,#f0f6ff)"}}>
-                    <div className="d-flex align-items-center gap-2 mb-3">
-                      <i className="bi bi-check-circle-fill" style={{color:"var(--jm-blue)"}} />
-                      <span className="fw-semibold" style={{color:"var(--jm-blue)"}}>Plano atual</span>
-                    </div>
-                    <div className="d-flex align-items-center gap-3 flex-wrap">
-                      <div>
-                        <div className="fw-bold fs-5" style={{color:"var(--jm-navy)"}}>{currentPlan.name}</div>
-                        <span className="badge rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".78rem"}}>{currentPlan.period}</span>
+                  <div className="mb-4">
+                    <h6 className="fw-semibold mb-3 d-flex align-items-center gap-2" style={{color:"var(--jm-navy)"}}>
+                      <i className="bi bi-check-circle-fill" style={{color:"#0d7a55"}} />Seu plano atual
+                      <span className="text-muted fw-normal" style={{fontSize:".82rem"}}>· desde {activeSub.startDate}</span>
+                    </h6>
+                    <div className="row g-4">
+                      <div className="col-12 col-sm-6 col-md-4">
+                        <div style={{background:"#fff",borderRadius:14,border:"2px solid var(--jm-blue)",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",boxShadow:"0 6px 24px rgba(21,101,192,.15)"}}>
+                          <span className="badge mb-2 px-3" style={{background:"#e8f0fe",color:"var(--jm-mid)",borderRadius:20,fontSize:".82rem"}}>{currentPlan.period}</span>
+                          <div className="fw-bold fs-5 mb-1" style={{color:"var(--jm-navy)"}}>{currentPlan.name}</div>
+                          <div className="fw-bold my-3" style={{fontSize:"2rem",color:"var(--jm-blue)",lineHeight:1}}>
+                            {currentPlan.price}<span style={{fontSize:".85rem",fontWeight:400,color:"#888"}}>/{currentPlan.period}</span>
+                          </div>
+                          <ul className="list-unstyled w-100 mb-4" style={{textAlign:"left"}}>
+                            {currentPlan.features.map((f,j) => (
+                              <li key={j} className="d-flex align-items-center gap-2 mb-2">
+                                <i className="bi bi-check-circle-fill" style={{color:"#0d7a55",flexShrink:0,fontSize:".85rem"}} />
+                                <span style={{fontSize:".87rem"}}>{f}</span>
+                              </li>
+                            ))}
+                          </ul>
+                          <button disabled style={{background:"#e8f0fe",color:"var(--jm-mid)",border:"none",borderRadius:9,padding:".62rem 1.5rem",fontWeight:700,cursor:"default",width:"100%",fontSize:".92rem",fontFamily:"inherit",opacity:.85}}>
+                            ✓ Plano atual
+                          </button>
+                        </div>
                       </div>
-                      <div className="fw-bold ms-2" style={{fontSize:"1.8rem",color:"var(--jm-blue)"}}>{currentPlan.price}</div>
-                      <div className="text-muted small ms-2">Desde {activeSub.startDate}</div>
                     </div>
-                    {currentPlan.features.length > 0 && (
-                      <div className="d-flex flex-wrap gap-2 mt-3">
-                        {currentPlan.features.map((f,i) => (
-                          <span key={i} style={{background:"rgba(255,255,255,.7)",border:"1px solid #c5d8fa",borderRadius:20,padding:".2rem .65rem",fontSize:".8rem",color:"var(--jm-mid)"}}>{f}</span>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ) : (
                   <div className="adm-info-banner mb-4">
