@@ -360,7 +360,7 @@
     ════════════════════════════════════════ */
     function HomePage({ courses, planos, trilhas, onNavigate }) {
       const stats = [
-        { icon: "bi-map",            label: "Trilhas",             value: trilhas.length || 0,  color: "var(--jm-blue)" },
+        { icon: "bi-map",            label: "Trilhas de Aprendizado",             value: trilhas.length || 0,  color: "var(--jm-blue)" },
         { icon: "bi-play-circle",    label: "Cursos disponíveis",  value: courses.length || 0,  color: "var(--jm-mid)"  },
         { icon: "bi-credit-card-2-front", label: "Planos ativos",  value: planos.length || 0,   color: "#0d7a55"        },
         { icon: "bi-patch-check",    label: "Certificados",        value: "2",                  color: "#7b2d8b"        },
@@ -474,7 +474,7 @@
                   <i className="bi bi-grid me-2" style={{color:"var(--jm-blue)"}} />Acesso rápido
                 </h6>
                 <div className="d-flex flex-wrap gap-2">
-                  {["Trilhas","Cursos","Aulas","Certificados","Assinaturas"].map(t => (
+                  {["Trilhas de Aprendizado","Cursos","Certificados","Meu Plano"].map(t => (
                     <button key={t} onClick={() => onNavigate("jmcursos", t)}
                       className="btn btn-sm fw-semibold"
                       style={{background:"#f0f4ff",color:"var(--jm-mid)",border:"1px solid #d0dcf5",borderRadius:8,fontSize:".8rem"}}>
@@ -495,7 +495,7 @@
     const ADMIN_TABS = [
       { key:"visao-geral",  label:"Visão Geral", icon:"bi-speedometer2"        },
       { key:"cursos",       label:"Cursos",      icon:"bi-play-circle"         },
-      { key:"trilhas",      label:"Trilhas",     icon:"bi-map"                 },
+      { key:"trilhas",      label:"Trilhas de Aprendizado",     icon:"bi-map"                 },
       { key:"usuarios",     label:"Usuários",    icon:"bi-people"              },
       { key:"planos",       label:"Planos",      icon:"bi-credit-card-2-front" },
       { key:"assinaturas",  label:"Assinaturas", icon:"bi-receipt"             },
@@ -804,7 +804,7 @@
     function AdminOverview({ courses, planos, trilhas, usuarios, onTabChange }) {
       const stats = [
         { icon:"bi-play-circle-fill",  label:"Cursos",   value:courses.length,  color:"var(--jm-blue)", tab:"cursos"   },
-        { icon:"bi-map-fill",          label:"Trilhas",  value:trilhas.length,  color:"var(--jm-mid)",  tab:"trilhas"  },
+        { icon:"bi-map-fill",          label:"Trilhas de Aprendizado",  value:trilhas.length,  color:"var(--jm-mid)",  tab:"trilhas"  },
         { icon:"bi-people-fill",       label:"Alunos",   value:usuarios.length, color:"#7b2d8b",        tab:"usuarios" },
         { icon:"bi-credit-card-fill",  label:"Planos",   value:planos.length,   color:"#0d7a55",        tab:"planos"   },
       ];
@@ -1195,7 +1195,7 @@
               <div className="adm-card">
                 <h6 className="fw-bold mb-3" style={{color:"var(--jm-navy)"}}>
                   <i className="bi bi-list-ul me-2" style={{color:"var(--jm-blue)"}} />
-                  Trilhas cadastradas <span className="badge ms-1 rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".73rem"}}>{trilhas.length}</span>
+                  Trilhas de Aprendizado cadastradas <span className="badge ms-1 rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".73rem"}}>{trilhas.length}</span>
                 </h6>
                 {trilhas.length === 0 && <p className="text-muted" style={{fontSize:".87rem"}}>Nenhuma trilha ainda.</p>}
                 {trilhas.map(t => (
@@ -1368,7 +1368,7 @@
     }
 
     function JmCursosPage({ sub, setSub, courses, planos, trilhas, currentUser, subscriptions, onSelectPlan }) {
-      const TABS = ["Trilhas","Cursos","Meu Plano","Certificados"];
+      const TABS = ["Trilhas de Aprendizado","Cursos","Meu Plano","Certificados"];
       const [playing, setPlaying] = useState(null);
 
       // ── progresso ────────────────────────────────────────────────────────────
@@ -1542,7 +1542,7 @@
             );
           })()}
 
-          {sub === "Trilhas" && (
+          {sub === "Trilhas de Aprendizado" && (
             trilhas.length === 0
               ? <p className="text-muted">Nenhuma trilha disponível ainda.</p>
               : <div className="row g-3">
@@ -1764,7 +1764,7 @@
       const [currentUser, setCurrentUser]       = useState(null);
       const [showPlanSelect, setShowPlanSelect] = useState(false);
       const [page, setPage]                     = useState("home");
-      const [sub, setSub]                       = useState("Trilhas");
+      const [sub, setSub]                       = useState("Trilhas de Aprendizado");
       const [open, setOpen]                     = useState(true);
 
       const [courses,  setCourses]  = useState([]);
