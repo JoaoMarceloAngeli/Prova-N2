@@ -1418,17 +1418,29 @@
                   {courses.map(c => (
                     <div className="col-12 col-md-6 col-lg-4" key={c.id}>
                       <div className="course-card">
-                        <div className="course-thumb"><i className="bi bi-play-circle-fill" /></div>
+                        <div className="course-thumb" style={{position:"relative"}}>
+                          <i className="bi bi-play-circle-fill" />
+                          {watched.includes(c.id) && (
+                            <span style={{position:"absolute",top:8,right:8,background:"#0d7a55",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:".72rem",fontWeight:700,display:"flex",alignItems:"center",gap:3}}>
+                              <i className="bi bi-check-circle-fill" style={{fontSize:".7rem"}} />Concluído
+                            </span>
+                          )}
+                        </div>
                         <div className="p-3">
-                          <div className="d-flex align-items-start justify-content-between gap-2 mb-1">
-                            <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{c.name}</div>
-                            {watched.includes(c.id) && (
-                              <span className="badge flex-shrink-0" style={{background:"#e8f6f0",color:"#0d7a55",fontSize:".7rem",borderRadius:20}}>
-                                <i className="bi bi-check-circle-fill me-1"/>Concluído
+                          <div className="fw-bold mb-1" style={{color:"var(--jm-navy)"}}>{c.name}</div>
+                          {c.description && <p className="text-muted mb-2" style={{fontSize:".83rem"}}>{c.description}</p>}
+                          <div className="d-flex flex-wrap gap-2 mb-2">
+                            {c.workload && (
+                              <span style={{background:"#f0f4ff",color:"var(--jm-mid)",borderRadius:20,padding:"2px 9px",fontSize:".76rem",display:"inline-flex",alignItems:"center",gap:4}}>
+                                <i className="bi bi-clock" style={{fontSize:".72rem"}} />{c.workload}
+                              </span>
+                            )}
+                            {c.videoUrl && (
+                              <span style={{background:"#e8f6f0",color:"#0d7a55",borderRadius:20,padding:"2px 9px",fontSize:".76rem",display:"inline-flex",alignItems:"center",gap:4}}>
+                                <i className="bi bi-play-circle" style={{fontSize:".72rem"}} />Com vídeo
                               </span>
                             )}
                           </div>
-                          {c.description && <p className="text-muted mb-2" style={{fontSize:".83rem"}}>{c.description}</p>}
                           {c.videoUrl && (
                             <button className="btn btn-sm w-100 fw-semibold"
                               style={{background:watched.includes(c.id)?"#e8f0fe":"var(--jm-grad)",color:watched.includes(c.id)?"var(--jm-mid)":"#fff",border:watched.includes(c.id)?"1px solid #d0dcf5":"none",borderRadius:8}}
@@ -1580,10 +1592,18 @@
                               <div>
                                 <div className="fw-semibold mb-1" style={{fontSize:".78rem",color:"var(--jm-navy)",textTransform:"uppercase",letterSpacing:".5px"}}>Cursos incluídos</div>
                                 {tCourses.map((c,i) => (
-                                  <div key={c.id} className="d-flex align-items-center gap-2 mb-1 p-2 rounded-2" style={{background:"#f8faff",border:"1px solid #e8f0fe"}}>
-                                    <span style={{width:20,height:20,borderRadius:"50%",background:"var(--jm-grad)",color:"#fff",fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{i+1}</span>
+                                  <div key={c.id}
+                                    className="d-flex align-items-center gap-2 mb-1 p-2 rounded-2"
+                                    style={{background:"#f8faff",border:"1px solid #e8f0fe",cursor:"pointer",transition:"background .15s,border-color .15s"}}
+                                    onMouseEnter={e=>{e.currentTarget.style.background="#e8f0fe";e.currentTarget.style.borderColor="#b3cdf7";}}
+                                    onMouseLeave={e=>{e.currentTarget.style.background="#f8faff";e.currentTarget.style.borderColor="#e8f0fe";}}
+                                    onClick={() => { setSub("Cursos"); setPlaying(c.id); markWatched(c.id); }}>
+                                    <span style={{width:20,height:20,borderRadius:"50%",background:isCourseComplete(c)?"#0d7a55":"var(--jm-grad)",color:"#fff",fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+                                      {isCourseComplete(c) ? <i className="bi bi-check-lg" style={{fontSize:".6rem"}} /> : i+1}
+                                    </span>
                                     <span style={{fontSize:".82rem",color:"var(--jm-navy)",flex:1}}>{c.name}</span>
                                     {c.workload && <span className="text-muted" style={{fontSize:".72rem"}}>{c.workload}</span>}
+                                    <i className="bi bi-play-circle" style={{color:"var(--jm-blue)",fontSize:".85rem",flexShrink:0}} />
                                   </div>
                                 ))}
                               </div>
@@ -1791,7 +1811,7 @@
         setCurrentUser(updatedUser);
         saveAndSetUsuarios(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
         setShowPlanSelect(false);
-        setSub("Meu Plano"); setPage("jmcursos");
+        setPage("home");
       }
 
       if (!loggedIn) {
