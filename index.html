@@ -270,7 +270,7 @@
     /* ════════════════════════════════════════
        LOGIN PAGE
     ════════════════════════════════════════ */
-    function LoginPage({ onLogin }) {
+    function LoginPage({ onLogin, usuarios }) {
       const [mode, setMode]         = useState("login");
       const [name, setName]         = useState("");
       const [email, setEmail]       = useState("");
@@ -285,8 +285,21 @@
             setError("E-mail ou senha de administrador incorretos.");
             return;
           }
+          onLogin(true, null);
+          return;
         }
-        onLogin(mode === "admin", mode === "register" ? { name, email } : null);
+        if (mode === "register") {
+          if (!name.trim()) { setError("Informe seu nome."); return; }
+          if (password.length < 6) { setError("A senha deve ter pelo menos 6 caracteres."); return; }
+          const exists = usuarios.some(u => u.email.toLowerCase() === email.toLowerCase());
+          if (exists) { setError("Este e-mail já está cadastrado. Use 'Entrar'."); return; }
+          onLogin(false, { name, email, password });
+          return;
+        }
+        // login mode — find existing user
+        const found = usuarios.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (!found) { setError("E-mail não encontrado. Cadastre-se primeiro."); return; }
+        onLogin(false, { existingUser: found });
       }
 
       const btnLabel = mode === "login" ? "Entrar na plataforma"
@@ -483,10 +496,9 @@
       { key:"visao-geral",  label:"Visão Geral", icon:"bi-speedometer2"        },
       { key:"cursos",       label:"Cursos",      icon:"bi-play-circle"         },
       { key:"trilhas",      label:"Trilhas",     icon:"bi-map"                 },
-      { key:"modulos",      label:"Módulos",     icon:"bi-grid"                },
-      { key:"aulas",        label:"Aulas",       icon:"bi-camera-video"        },
-      { key:"assinaturas",  label:"Assinaturas", icon:"bi-credit-card-2-front" },
       { key:"usuarios",     label:"Usuários",    icon:"bi-people"              },
+      { key:"planos",       label:"Planos",      icon:"bi-credit-card-2-front" },
+      { key:"assinaturas",  label:"Assinaturas", icon:"bi-receipt"             },
     ];
 
     /* ── Cursos ── */
@@ -602,7 +614,7 @@
     }
 
     /* ── Assinaturas ── */
-    function AdminAssinaturas({ planos, setPlanos }) {
+    function AdminPlanos({ planos, setPlanos }) {
       const empty = { name:"", price:"", period:"mensal", features:[""] };
       const [form, setForm]       = useState(empty);
       const [editing, setEditing] = useState(null);
@@ -720,14 +732,97 @@
       );
     }
 
+    /* ── Assinaturas (registros) ── */
+    function AdminAssinaturas({ subscriptions, planos, usuarios }) {
+      const enriched = subscriptions.map(s => ({
+        ...s,
+        user: usuarios.find(u => u.id === s.userId),
+        plan: planos.find(p => p.id === s.planId),
+      }));
+      const ativos = enriched.filter(s => s.status === "ativo").length;
+
+      return (
+        <div>
+          <div className="adm-section-title">
+            <div className="adm-section-icon"><i className="bi bi-receipt" /></div>
+            <div>
+              <div className="fw-bold fs-5" style={{color:"var(--jm-navy)"}}>Assinaturas</div>
+              <div className="text-muted" style={{fontSize:".83rem"}}>Planos contratados pelos alunos</div>
+            </div>
+          </div>
+          <div className="row g-3 mb-4">
+            {[
+              {label:"Total", value:subscriptions.length, color:"var(--jm-blue)", icon:"bi-receipt"},
+              {label:"Ativas", value:ativos, color:"#0d7a55", icon:"bi-check-circle-fill"},
+              {label:"Canceladas", value:subscriptions.length - ativos, color:"#c0392b", icon:"bi-x-circle-fill"},
+            ].map((s,i) => (
+              <div className="col-4" key={i}>
+                <div className="adm-stat-card d-flex align-items-center gap-3">
+                  <div style={{width:40,height:40,borderRadius:10,background:s.color+"1a",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.1rem",flexShrink:0}}>
+                    <i className={"bi " + s.icon} />
+                  </div>
+                  <div>
+                    <div className="fw-bold lh-1" style={{fontSize:"1.4rem",color:s.color}}>{s.value}</div>
+                    <div className="text-muted mt-1" style={{fontSize:".74rem"}}>{s.label}</div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="adm-card">
+            <h6 className="fw-bold mb-3" style={{color:"var(--jm-navy)"}}>
+              <i className="bi bi-list-ul me-2" style={{color:"var(--jm-blue)"}} />Lista de assinaturas
+            </h6>
+            {enriched.length === 0 ? (
+              <p className="text-muted" style={{fontSize:".88rem"}}>Nenhuma assinatura registrada ainda.</p>
+            ) : (
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:".85rem"}}>
+                  <thead>
+                    <tr style={{borderBottom:"2px solid #eef2fb"}}>
+                      {["Aluno","E-mail","Plano","Tipo","Valor","Início","Status"].map(h => (
+                        <th key={h} style={{padding:".6rem .8rem",textAlign:"left",color:"var(--jm-navy)",fontWeight:700,fontSize:".78rem",textTransform:"uppercase",letterSpacing:".4px"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {enriched.map(s => (
+                      <tr key={s.id} style={{borderBottom:"1px solid #eef2fb"}}>
+                        <td style={{padding:".6rem .8rem",fontWeight:600,color:"var(--jm-navy)"}}>{s.user?.name || s.userName || "—"}</td>
+                        <td style={{padding:".6rem .8rem",color:"#6b7a9a"}}>{s.user?.email || s.userEmail || "—"}</td>
+                        <td style={{padding:".6rem .8rem"}}>{s.plan?.name || s.planName || "—"}</td>
+                        <td style={{padding:".6rem .8rem"}}>
+                          {(s.plan?.period || s.planPeriod) && (
+                            <span className="badge rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".72rem"}}>{s.plan?.period || s.planPeriod}</span>
+                          )}
+                        </td>
+                        <td style={{padding:".6rem .8rem",fontWeight:600,color:"var(--jm-blue)"}}>{s.plan?.price || s.planPrice || "—"}</td>
+                        <td style={{padding:".6rem .8rem",color:"#6b7a9a"}}>{s.startDate}</td>
+                        <td style={{padding:".6rem .8rem"}}>
+                          <span className="badge rounded-pill fw-semibold"
+                            style={s.status==="ativo"?{background:"#e8f6f0",color:"#0d7a55",fontSize:".74rem"}:{background:"#fff0f0",color:"#c0392b",fontSize:".74rem"}}>
+                            {s.status==="ativo" ? "● Ativa" : "● Cancelada"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     /* ── Visão Geral ── */
-    function AdminOverview({ courses, planos, trilhas, modulos, aulas, onTabChange }) {
+    function AdminOverview({ courses, planos, trilhas, usuarios, onTabChange }) {
       const stats = [
-        { icon:"bi-play-circle-fill",  label:"Cursos",       value:courses.length, color:"var(--jm-blue)", tab:"cursos"      },
-        { icon:"bi-map-fill",          label:"Trilhas",       value:trilhas.length, color:"var(--jm-mid)",  tab:"trilhas"     },
-        { icon:"bi-grid-fill",         label:"Módulos",       value:modulos.length, color:"#7b2d8b",        tab:"modulos"     },
-        { icon:"bi-camera-video-fill", label:"Aulas",         value:aulas.length,   color:"#c05621",        tab:"aulas"       },
-        { icon:"bi-credit-card-fill",  label:"Planos",        value:planos.length,  color:"#0d7a55",        tab:"assinaturas" },
+        { icon:"bi-play-circle-fill",  label:"Cursos",   value:courses.length,  color:"var(--jm-blue)", tab:"cursos"   },
+        { icon:"bi-map-fill",          label:"Trilhas",  value:trilhas.length,  color:"var(--jm-mid)",  tab:"trilhas"  },
+        { icon:"bi-people-fill",       label:"Alunos",   value:usuarios.length, color:"#7b2d8b",        tab:"usuarios" },
+        { icon:"bi-credit-card-fill",  label:"Planos",   value:planos.length,   color:"#0d7a55",        tab:"planos"   },
       ];
       return (
         <div>
@@ -856,7 +951,8 @@
       const setUsers = setUsuarios;
       const ativos   = users.filter(u => u.status==="ativo").length;
       const inativos = users.filter(u => u.status==="inativo").length;
-      function toggle(id) { setUsers(prev => prev.map(u => u.id===id ? {...u,status:u.status==="ativo"?"inativo":"ativo"} : u)); }
+      function toggle(id)  { setUsers(prev => prev.map(u => u.id===id ? {...u,status:u.status==="ativo"?"inativo":"ativo"} : u)); }
+      function remove(id) { if (window.confirm("Excluir este usuário?")) setUsers(prev => prev.filter(u => u.id!==id)); }
       return (
         <div>
           <div className="adm-section-title">
@@ -911,6 +1007,9 @@
                   </span>
                   <button className="btn btn-sm btn-light" title={u.status==="ativo"?"Desativar":"Ativar"} onClick={() => toggle(u.id)}>
                     <i className={"bi bi-toggle-" + (u.status==="ativo"?"on text-success":"off text-danger")} style={{fontSize:"1.1rem"}} />
+                  </button>
+                  <button className="btn btn-sm btn-light text-danger" title="Excluir" onClick={() => remove(u.id)}>
+                    <i className="bi bi-trash" />
                   </button>
                 </div>
               </div>
@@ -1152,8 +1251,8 @@
 
     /* ── Painel Admin (tela separada) ── */
     function AdminPanel({ courses, setCourses, planos, setPlanos, trilhas, setTrilhas,
-                          modulos, setModulos, aulas, setAulas, usuarios, setUsuarios,
-                          certificados, setCertificados, onLogout }) {
+                          usuarios, setUsuarios, subscriptions,
+                          onLogout }) {
       const [activeTab, setActiveTab] = useState("visao-geral");
 
       return (
@@ -1202,12 +1301,11 @@
 
           {/* Conteúdo */}
           <div className="p-4" style={{maxWidth:1100,margin:"0 auto"}}>
-            {activeTab==="visao-geral" && <AdminOverview courses={courses} planos={planos} trilhas={trilhas} modulos={modulos} aulas={aulas} onTabChange={setActiveTab} />}
+            {activeTab==="visao-geral" && <AdminOverview courses={courses} planos={planos} trilhas={trilhas} usuarios={usuarios} onTabChange={setActiveTab} />}
             {activeTab==="cursos"      && <AdminCursos courses={courses} setCourses={setCourses} />}
-            {activeTab==="assinaturas" && <AdminAssinaturas planos={planos} setPlanos={setPlanos} />}
+            {activeTab==="planos"      && <AdminPlanos planos={planos} setPlanos={setPlanos} />}
+            {activeTab==="assinaturas" && <AdminAssinaturas subscriptions={subscriptions} planos={planos} usuarios={usuarios} />}
             {activeTab==="trilhas"     && <AdminTrilhas trilhas={trilhas} setTrilhas={setTrilhas} courses={courses} />}
-            {activeTab==="modulos"     && <AdminSimple label="Módulo" icon="bi-grid-fill"         sectionDesc="Divida os cursos em módulos temáticos"        items={modulos} setItems={setModulos} />}
-            {activeTab==="aulas"       && <AdminSimple label="Aula"   icon="bi-camera-video-fill" sectionDesc="Gerencie as aulas individuais de cada módulo" items={aulas}   setItems={setAulas} />}
             {activeTab==="usuarios"    && <AdminUsuarios usuarios={usuarios} setUsuarios={setUsuarios} />}
           </div>
         </div>
@@ -1281,8 +1379,8 @@
       );
     }
 
-    function JmCursosPage({ sub, setSub, courses, planos, trilhas, modulos, aulas }) {
-      const TABS = ["Trilhas","Cursos","Módulos","Aulas","Usuários","Assinaturas","Certificados"];
+    function JmCursosPage({ sub, setSub, courses, planos, trilhas, currentUser, subscriptions, onSelectPlan }) {
+      const TABS = ["Trilhas","Cursos","Meu Plano","Certificados"];
       const [playing, setPlaying] = useState(null);
 
       return (
@@ -1330,35 +1428,76 @@
                 </div>
           )}
 
-          {sub === "Assinaturas" && (
-            planos.length === 0
-              ? <p className="text-muted">Nenhum plano disponível ainda.</p>
-              : <div className="row g-3">
-                  {planos.map((p,i) => (
-                    <div className="col-12 col-md-6 col-lg-4" key={p.id}>
-                      <div className={"plan-card" + (i===0 ? " featured":"")}>
-                        {i===0 && <span className="plan-badge d-inline-block mb-2">Popular</span>}
-                        <div className="fw-bold fs-5 mb-1" style={{color:"var(--jm-navy)"}}>{p.name}</div>
-                        <div className="mb-3">
-                          <span className="fw-bold" style={{fontSize:"1.6rem",color:"var(--jm-blue)"}}>{p.price}</span>
-                          <span className="text-muted ms-1" style={{fontSize:".85rem"}}>/{p.period}</span>
-                        </div>
-                        <ul className="list-unstyled mb-3">
-                          {p.features.map((f,j) => (
-                            <li key={j} className="mb-1" style={{fontSize:".88rem",color:"#4a5568"}}>
-                              <i className="bi bi-check2 me-2" style={{color:"#0d7a55"}} />{f}
-                            </li>
-                          ))}
-                        </ul>
-                        <button className="btn w-100 fw-semibold"
-                          style={{background:i===0?"var(--jm-grad)":"#f0f4ff",color:i===0?"#fff":"var(--jm-mid)",border:i===0?"none":"1px solid #d0dcf5",borderRadius:9}}>
-                          Assinar agora
-                        </button>
-                      </div>
+          {sub === "Meu Plano" && (() => {
+            const activeSub = subscriptions.find(s => s.userId === currentUser?.id && s.status === "ativo");
+            const currentPlan = activeSub ? planos.find(p => p.id === activeSub.planId) : null;
+            return (
+              <div>
+                {currentPlan && activeSub ? (
+                  <div className="mb-4 p-4 rounded-3" style={{border:"2px solid var(--jm-blue)",background:"linear-gradient(135deg,#e8f0fe,#f0f6ff)"}}>
+                    <div className="d-flex align-items-center gap-2 mb-3">
+                      <i className="bi bi-check-circle-fill" style={{color:"var(--jm-blue)"}} />
+                      <span className="fw-semibold" style={{color:"var(--jm-blue)"}}>Plano atual</span>
                     </div>
-                  ))}
-                </div>
-          )}
+                    <div className="d-flex align-items-center gap-3 flex-wrap">
+                      <div>
+                        <div className="fw-bold fs-5" style={{color:"var(--jm-navy)"}}>{currentPlan.name}</div>
+                        <span className="badge rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".78rem"}}>{currentPlan.period}</span>
+                      </div>
+                      <div className="fw-bold ms-2" style={{fontSize:"1.8rem",color:"var(--jm-blue)"}}>{currentPlan.price}</div>
+                      <div className="text-muted small ms-2">Desde {activeSub.startDate}</div>
+                    </div>
+                    {currentPlan.features.length > 0 && (
+                      <div className="d-flex flex-wrap gap-2 mt-3">
+                        {currentPlan.features.map((f,i) => (
+                          <span key={i} style={{background:"rgba(255,255,255,.7)",border:"1px solid #c5d8fa",borderRadius:20,padding:".2rem .65rem",fontSize:".8rem",color:"var(--jm-mid)"}}>{f}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="adm-info-banner mb-4">
+                    <i className="bi bi-info-circle-fill me-2" />Você ainda não possui um plano ativo.
+                  </div>
+                )}
+
+                <h6 className="fw-semibold text-muted mb-3">{currentPlan ? "Trocar de plano" : "Escolher um plano"}</h6>
+                {planos.length === 0 ? (
+                  <p className="text-muted">Nenhum plano disponível no momento.</p>
+                ) : (
+                  <div className="row g-4">
+                    {planos.map((p,i) => {
+                      const isCurrent = currentPlan?.id === p.id;
+                      return (
+                        <div key={p.id} className="col-12 col-sm-6 col-md-4">
+                          <div style={{background:"#fff",borderRadius:14,border:isCurrent?"2px solid var(--jm-blue)":"2px solid #e3e8f0",padding:"1.5rem",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",boxShadow:isCurrent?"0 6px 24px rgba(21,101,192,.15)":"0 2px 10px rgba(0,0,0,.04)",transition:"border-color .2s,box-shadow .2s"}}>
+                            <span className="badge mb-2 px-3" style={{background:"#e8f0fe",color:"var(--jm-mid)",borderRadius:20,fontSize:".82rem"}}>{p.period}</span>
+                            <div className="fw-bold fs-5 mb-1" style={{color:"var(--jm-navy)"}}>{p.name}</div>
+                            <div className="fw-bold my-3" style={{fontSize:"2rem",color:"var(--jm-blue)",lineHeight:1}}>
+                              {p.price}<span style={{fontSize:".85rem",fontWeight:400,color:"#888"}}>/{p.period}</span>
+                            </div>
+                            <ul className="list-unstyled w-100 mb-4" style={{textAlign:"left"}}>
+                              {p.features.map((f,j) => (
+                                <li key={j} className="d-flex align-items-center gap-2 mb-2">
+                                  <i className="bi bi-check-circle-fill" style={{color:"#0d7a55",flexShrink:0,fontSize:".85rem"}} />
+                                  <span style={{fontSize:".87rem"}}>{f}</span>
+                                </li>
+                              ))}
+                            </ul>
+                            <button disabled={isCurrent}
+                              style={{background:isCurrent?"#e8f0fe":i===0?"var(--jm-grad)":"#f0f4ff",color:isCurrent?"var(--jm-mid)":i===0?"#fff":"var(--jm-mid)",border:isCurrent||i===0?"none":"1px solid #d0dcf5",borderRadius:9,padding:".62rem 1.5rem",fontWeight:700,cursor:isCurrent?"default":"pointer",width:"100%",fontSize:".92rem",fontFamily:"inherit",opacity:isCurrent?.85:1}}
+                              onClick={() => { if (!isCurrent) onSelectPlan(p); }}>
+                              {isCurrent ? "✓ Plano atual" : "Selecionar"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {sub === "Trilhas" && (
             trilhas.length === 0
@@ -1418,22 +1557,56 @@
                 </div>
           )}
 
-          {(sub === "Módulos" || sub === "Aulas" || sub === "Usuários") && (
-            <div className="bg-white rounded-3 p-4" style={{border:"1px solid #e3e8f0"}}>
-              <h5 className="fw-bold mb-3" style={{color:"var(--jm-navy)"}}>{sub}</h5>
-              {(sub==="Módulos" ? modulos : sub==="Aulas" ? aulas : []).length === 0
-                ? <p className="text-muted">Nenhum item disponível ainda.</p>
-                : <ul className="list-group list-group-flush">
-                    {(sub==="Módulos" ? modulos : aulas).map(x => (
-                      <li key={x.id} className="list-group-item px-0">
-                        <span className="fw-semibold" style={{color:"var(--jm-navy)"}}>{x.name}</span>
-                        {x.description && <span className="text-muted ms-2" style={{fontSize:".83rem"}}>{x.description}</span>}
-                      </li>
-                    ))}
-                  </ul>
-              }
+        </div>
+      );
+    }
+
+    /* ─── Tela de seleção de plano (primeiro login) ─────────────────────────── */
+    function PlanSelectionScreen({ planos, userName, onSelectPlan }) {
+      return (
+        <div style={{minHeight:"100vh",background:"linear-gradient(135deg,#f0f4ff,#e8f0fe)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"2rem"}}>
+          <div style={{maxWidth:960,width:"100%"}}>
+            <div className="text-center mb-5">
+              <div style={{fontWeight:900,fontSize:"2rem",color:"var(--jm-navy)"}}>JM <span style={{color:"var(--jm-blue)"}}>Cursos</span></div>
+              <h2 className="fw-bold mt-3" style={{color:"var(--jm-navy)"}}>Bem-vindo, {userName.split(" ")[0]}!</h2>
+              <p className="text-muted">Escolha o plano que melhor se adapta a você para começar.</p>
             </div>
-          )}
+            {planos.length === 0 ? (
+              <div className="text-center py-5 text-muted">
+                <i className="bi bi-credit-card" style={{fontSize:"3rem",opacity:.4,display:"block",marginBottom:"1rem"}} />
+                <p>Nenhum plano disponível no momento. Contate o administrador.</p>
+              </div>
+            ) : (
+              <div className="row g-4 justify-content-center">
+                {planos.map((p,i) => (
+                  <div key={p.id} className="col-12 col-sm-6 col-md-4">
+                    <div style={{background:"#fff",borderRadius:16,border:i===0?"2px solid var(--jm-blue)":"2px solid #e3e8f0",padding:"1.75rem",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center",boxShadow:i===0?"0 8px 30px rgba(21,101,192,.18)":"0 2px 10px rgba(0,0,0,.05)",transition:"box-shadow .2s"}}>
+                      {i===0 && <span className="plan-badge mb-3">Popular</span>}
+                      <span className="badge mb-2 px-3" style={{background:"#e8f0fe",color:"var(--jm-mid)",borderRadius:20,fontSize:".82rem"}}>{p.period}</span>
+                      <h4 className="fw-bold mb-2" style={{color:"var(--jm-navy)"}}>{p.name}</h4>
+                      <div style={{fontSize:"2.6rem",fontWeight:900,color:"var(--jm-blue)",lineHeight:1}}>
+                        {p.price}
+                        <span style={{fontSize:".9rem",fontWeight:400,color:"#888"}}>/{p.period}</span>
+                      </div>
+                      <ul className="list-unstyled w-100 my-4" style={{textAlign:"left"}}>
+                        {p.features.map((f,j) => (
+                          <li key={j} className="d-flex align-items-center gap-2 mb-2">
+                            <i className="bi bi-check-circle-fill" style={{color:"#0d7a55",flexShrink:0}} />
+                            <span style={{fontSize:".88rem"}}>{f}</span>
+                          </li>
+                        ))}
+                        {p.features.length===0 && <li className="text-muted text-center" style={{fontSize:".85rem"}}>Sem benefícios listados</li>}
+                      </ul>
+                      <button style={{background:i===0?"var(--jm-grad)":"#f0f4ff",color:i===0?"#fff":"var(--jm-mid)",border:i===0?"none":"1px solid #d0dcf5",borderRadius:9,padding:".7rem 1.5rem",fontWeight:700,cursor:"pointer",width:"100%",fontSize:".95rem",fontFamily:"inherit"}}
+                        onClick={() => onSelectPlan(p)}>
+                        Escolher plano
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       );
     }
@@ -1442,21 +1615,23 @@
        APP
     ════════════════════════════════════════ */
     function App() {
-      const [loggedIn, setLoggedIn]       = useState(false);
-      const [isAdmin, setIsAdmin]         = useState(false);
-      const [page, setPage]               = useState("home");
-      const [sub, setSub]                 = useState("Trilhas");
-      const [open, setOpen]               = useState(true);
+      const [loggedIn, setLoggedIn]             = useState(false);
+      const [isAdmin, setIsAdmin]               = useState(false);
+      const [currentUser, setCurrentUser]       = useState(null);
+      const [showPlanSelect, setShowPlanSelect] = useState(false);
+      const [page, setPage]                     = useState("home");
+      const [sub, setSub]                       = useState("Trilhas");
+      const [open, setOpen]                     = useState(true);
 
-      const [courses,      setCourses]      = useState([]);
-      const [planos,       setPlanos]       = useState([]);
-      const [trilhas,      setTrilhas]      = useState([]);
-      const [modulos,      setModulos]      = useState([]);
-      const [aulas,        setAulas]        = useState([]);
-      const [usuarios,     setUsuarios]     = useState(() => {
+      const [courses,  setCourses]  = useState([]);
+      const [planos,   setPlanos]   = useState([]);
+      const [trilhas,  setTrilhas]  = useState([]);
+      const [usuarios, setUsuarios] = useState(() => {
         try { return JSON.parse(localStorage.getItem("jm_usuarios") || "[]"); } catch { return []; }
       });
-      const [certificados, setCertificados] = useState([]);
+      const [subscriptions, setSubscriptions] = useState(() => {
+        try { return JSON.parse(localStorage.getItem("jm_subscriptions") || "[]"); } catch { return []; }
+      });
 
       function saveAndSetUsuarios(updater) {
         setUsuarios(prev => {
@@ -1466,20 +1641,55 @@
         });
       }
 
+      function saveAndSetSubscriptions(updater) {
+        setSubscriptions(prev => {
+          const next = typeof updater === "function" ? updater(prev) : updater;
+          localStorage.setItem("jm_subscriptions", JSON.stringify(next));
+          return next;
+        });
+      }
+
+      function handleSelectPlan(plan) {
+        if (!currentUser) return;
+        const newSub = {
+          id: uid(), userId: currentUser.id,
+          userName: currentUser.name, userEmail: currentUser.email,
+          planId: plan.id, planName: plan.name,
+          planPeriod: plan.period, planPrice: plan.price,
+          startDate: new Date().toLocaleDateString("pt-BR"),
+          status: "ativo"
+        };
+        saveAndSetSubscriptions(prev => [
+          ...prev.map(s => s.userId === currentUser.id && s.status === "ativo" ? {...s, status:"cancelado"} : s),
+          newSub
+        ]);
+        const updatedUser = {...currentUser, planId: plan.id, plan: plan.name};
+        setCurrentUser(updatedUser);
+        saveAndSetUsuarios(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+        setShowPlanSelect(false);
+        setSub("Meu Plano"); setPage("jmcursos");
+      }
+
       if (!loggedIn) {
-        return <LoginPage onLogin={(admin, newUser) => {
-          if (newUser) {
-            saveAndSetUsuarios(prev => [...prev, {
-              id: uid(),
-              name: newUser.name,
-              email: newUser.email,
-              plan: "Gratuito",
-              status: "ativo",
-              date: new Date().toLocaleDateString("pt-BR")
-            }]);
+        return <LoginPage usuarios={usuarios} onLogin={(admin, userData) => {
+          if (admin) { setIsAdmin(true); setLoggedIn(true); return; }
+          if (userData?.existingUser) {
+            // existing student login
+            const u = userData.existingUser;
+            setCurrentUser(u); setLoggedIn(true);
+            const hasPlan = subscriptions.some(s => s.userId === u.id && s.status === "ativo");
+            if (!hasPlan) setShowPlanSelect(true);
+            return;
           }
-          setIsAdmin(admin);
-          setLoggedIn(true);
+          // new registration
+          const newUser = {
+            id: uid(), name: userData.name, email: userData.email,
+            plan: "Gratuito", planId: null, status: "ativo",
+            date: new Date().toLocaleDateString("pt-BR")
+          };
+          saveAndSetUsuarios(prev => [...prev, newUser]);
+          setCurrentUser(newUser); setLoggedIn(true);
+          if (planos.length > 0) setShowPlanSelect(true);
         }} />;
       }
 
@@ -1489,11 +1699,19 @@
             courses={courses}      setCourses={setCourses}
             planos={planos}        setPlanos={setPlanos}
             trilhas={trilhas}      setTrilhas={setTrilhas}
-            modulos={modulos}      setModulos={setModulos}
-            aulas={aulas}          setAulas={setAulas}
             usuarios={usuarios}    setUsuarios={saveAndSetUsuarios}
-            certificados={certificados} setCertificados={setCertificados}
-            onLogout={() => { setIsAdmin(false); setLoggedIn(false); }}
+            subscriptions={subscriptions}
+            onLogout={() => { setIsAdmin(false); setLoggedIn(false); setCurrentUser(null); }}
+          />
+        );
+      }
+
+      if (showPlanSelect && planos.length > 0) {
+        return (
+          <PlanSelectionScreen
+            planos={planos}
+            userName={currentUser?.name || ""}
+            onSelectPlan={handleSelectPlan}
           />
         );
       }
@@ -1527,7 +1745,7 @@
               </li>
             </ul>
             <div className="p-2 border-top">
-              <button className="jm-nav-btn w-100" style={{color:"#c0392b"}} onClick={() => setLoggedIn(false)}>
+              <button className="jm-nav-btn w-100" style={{color:"#c0392b"}} onClick={() => { setLoggedIn(false); setCurrentUser(null); setShowPlanSelect(false); }}>
                 <i className="bi bi-box-arrow-left me-2" />{open && "Sair"}
               </button>
             </div>
@@ -1540,7 +1758,8 @@
             {page === "jmcursos" && (
               <JmCursosPage sub={sub} setSub={setSub}
                 courses={courses} planos={planos} trilhas={trilhas}
-                modulos={modulos} aulas={aulas} />
+                currentUser={currentUser} subscriptions={subscriptions}
+                onSelectPlan={handleSelectPlan} />
             )}
           </div>
         </div>
