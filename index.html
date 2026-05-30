@@ -188,15 +188,29 @@
 
     /* ── Course cards (user view) ── */
     .course-card {
-      background: #fff; border-radius: 12px; overflow: hidden;
-      border: 1px solid #e3e8f0; box-shadow: 0 2px 10px rgba(0,0,0,.05);
-      transition: transform .2s, box-shadow .2s; cursor: pointer;
+      background: #fff; border-radius: 14px; overflow: hidden;
+      border: 1px solid #e3e8f0; box-shadow: 0 2px 12px rgba(13,27,75,.07);
+      transition: transform .22s, box-shadow .22s; cursor: pointer;
+      display: flex; flex-direction: column;
     }
-    .course-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(13,27,75,.12); }
+    .course-card:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(13,27,75,.14); }
+    .course-card.is-complete { border-top: 3px solid #0d7a55; }
     .course-thumb {
-      height: 130px; background: var(--jm-grad);
+      height: 152px; background: var(--jm-grad);
       display: flex; align-items: center; justify-content: center;
-      font-size: 2.5rem; color: rgba(255,255,255,.6);
+      position: relative; overflow: hidden;
+    }
+    .course-thumb::after {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 25% 75%, rgba(255,255,255,.09) 0%, transparent 55%);
+      pointer-events: none;
+    }
+    .course-thumb > .bi-play-circle-fill {
+      font-size: 3rem; color: rgba(255,255,255,.55);
+      transition: transform .22s, color .22s; position: relative; z-index: 1;
+    }
+    .course-card:hover .course-thumb > .bi-play-circle-fill {
+      transform: scale(1.14); color: rgba(255,255,255,.88);
     }
 
     /* ── Certificado ── */
@@ -257,14 +271,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7/babel.min.js"></script>
 
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect, useRef } = React;
 
     function uid() { return Date.now() + Math.random(); }
 
     function toEmbed(url) {
       if (!url) return null;
       const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
-      return m ? "https://www.youtube.com/embed/" + m[1] : url;
+      return m ? "https://www.youtube.com/embed/" + m[1] + "?enablejsapi=1" : url;
     }
 
     /* ════════════════════════════════════════
@@ -736,6 +750,15 @@
       );
     }
 
+    function calcExpiry(startDate, period) {
+      if (!startDate) return "—";
+      const [d, m, y] = startDate.split("/").map(Number);
+      const date = new Date(y, m - 1, d);
+      const months = { mensal: 1, trimestral: 3, semestral: 6, anual: 12 };
+      date.setMonth(date.getMonth() + (months[period] || 0));
+      return date.toLocaleDateString("pt-BR");
+    }
+
     /* ── Assinaturas (registros) ── */
     function AdminAssinaturas({ subscriptions, planos, usuarios }) {
       const enriched = subscriptions.map(s => ({
@@ -765,7 +788,7 @@
                 <table style={{width:"100%",borderCollapse:"collapse",fontSize:".85rem"}}>
                   <thead>
                     <tr style={{borderBottom:"2px solid #eef2fb"}}>
-                      {["Aluno","E-mail","Plano","Tipo","Valor","Início","Status"].map(h => (
+                      {["Aluno","E-mail","Plano","Tipo","Valor","Início","Vencimento","Status"].map(h => (
                         <th key={h} style={{padding:".6rem .8rem",textAlign:"left",color:"var(--jm-navy)",fontWeight:700,fontSize:".78rem",textTransform:"uppercase",letterSpacing:".4px"}}>{h}</th>
                       ))}
                     </tr>
@@ -783,6 +806,7 @@
                         </td>
                         <td style={{padding:".6rem .8rem",fontWeight:600,color:"var(--jm-blue)"}}>{s.plan?.price || s.planPrice || "—"}</td>
                         <td style={{padding:".6rem .8rem",color:"#6b7a9a"}}>{s.startDate}</td>
+                        <td style={{padding:".6rem .8rem",color:"#6b7a9a"}}>{calcExpiry(s.startDate, s.plan?.period || s.planPeriod)}</td>
                         <td style={{padding:".6rem .8rem"}}>
                           <span className="badge rounded-pill fw-semibold"
                             style={s.status==="ativo"?{background:"#e8f6f0",color:"#0d7a55",fontSize:".74rem"}:{background:"#fff0f0",color:"#c0392b",fontSize:".74rem"}}>
@@ -1383,6 +1407,22 @@
         localStorage.setItem(watchedKey, JSON.stringify(n));
       }
       function isCourseComplete(c) { return !c.videoUrl || watched.includes(c.id); }
+
+      // Marca como concluído somente quando o vídeo realmente começa a tocar (playerState 1)
+      useEffect(() => {
+        if (!playing) return;
+        function onMsg(e) {
+          try {
+            const d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+            if (d?.event === 'infoDelivery' && d?.info?.playerState === 1) {
+              markWatched(playing);
+            }
+          } catch {}
+        }
+        window.addEventListener('message', onMsg);
+        return () => window.removeEventListener('message', onMsg);
+      }, [playing]);
+
       function isTrailComplete(t) {
         const tc = courses.filter(c => (t.courseIds||[]).includes(c.id));
         return tc.length > 0 && tc.every(c => isCourseComplete(c));
@@ -1417,40 +1457,40 @@
               : <div className="row g-3">
                   {courses.map(c => (
                     <div className="col-12 col-md-6 col-lg-4" key={c.id}>
-                      <div className="course-card">
-                        <div className="course-thumb" style={{position:"relative"}}>
+                      <div className={"course-card" + (watched.includes(c.id) ? " is-complete" : "")}>
+                        <div className="course-thumb">
                           <i className="bi bi-play-circle-fill" />
                           {watched.includes(c.id) && (
-                            <span style={{position:"absolute",top:8,right:8,background:"#0d7a55",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:".72rem",fontWeight:700,display:"flex",alignItems:"center",gap:3}}>
-                              <i className="bi bi-check-circle-fill" style={{fontSize:".7rem"}} />Concluído
+                            <span style={{position:"absolute",top:10,right:10,background:"rgba(13,122,85,.92)",backdropFilter:"blur(4px)",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:".71rem",fontWeight:700,display:"flex",alignItems:"center",gap:4,zIndex:2,boxShadow:"0 1px 6px rgba(0,0,0,.18)"}}>
+                              <i className="bi bi-check-circle-fill" style={{fontSize:".68rem"}} />Concluído
                             </span>
                           )}
                         </div>
-                        <div className="p-3">
-                          <div className="fw-bold mb-1" style={{color:"var(--jm-navy)"}}>{c.name}</div>
-                          {c.description && <p className="text-muted mb-2" style={{fontSize:".83rem"}}>{c.description}</p>}
-                          <div className="d-flex flex-wrap gap-2 mb-2">
+                        <div className="p-3 d-flex flex-column flex-grow-1">
+                          <div className="fw-bold mb-1" style={{color:"var(--jm-navy)",fontSize:".95rem",lineHeight:1.3}}>{c.name}</div>
+                          {c.description && <p className="text-muted mb-2" style={{fontSize:".82rem",lineHeight:1.45}}>{c.description}</p>}
+                          <div className="d-flex flex-wrap gap-2 mb-3 mt-auto pt-1">
                             {c.workload && (
-                              <span style={{background:"#f0f4ff",color:"var(--jm-mid)",borderRadius:20,padding:"2px 9px",fontSize:".76rem",display:"inline-flex",alignItems:"center",gap:4}}>
-                                <i className="bi bi-clock" style={{fontSize:".72rem"}} />{c.workload}
+                              <span style={{background:"#f0f4ff",color:"var(--jm-mid)",borderRadius:20,padding:"3px 10px",fontSize:".74rem",fontWeight:500,display:"inline-flex",alignItems:"center",gap:4}}>
+                                <i className="bi bi-clock" style={{fontSize:".7rem"}} />{c.workload}h
                               </span>
                             )}
                             {c.videoUrl && (
-                              <span style={{background:"#e8f6f0",color:"#0d7a55",borderRadius:20,padding:"2px 9px",fontSize:".76rem",display:"inline-flex",alignItems:"center",gap:4}}>
-                                <i className="bi bi-play-circle" style={{fontSize:".72rem"}} />Com vídeo
+                              <span style={{background:"#e8f6f0",color:"#0d7a55",borderRadius:20,padding:"3px 10px",fontSize:".74rem",fontWeight:500,display:"inline-flex",alignItems:"center",gap:4}}>
+                                <i className="bi bi-play-circle" style={{fontSize:".7rem"}} />Com vídeo
                               </span>
                             )}
                           </div>
                           {c.videoUrl && (
                             <button className="btn btn-sm w-100 fw-semibold"
-                              style={{background:watched.includes(c.id)?"#e8f0fe":"var(--jm-grad)",color:watched.includes(c.id)?"var(--jm-mid)":"#fff",border:watched.includes(c.id)?"1px solid #d0dcf5":"none",borderRadius:8}}
-                              onClick={() => { const n=playing===c.id?null:c.id; setPlaying(n); if(n) markWatched(c.id); }}>
-                              <i className={"bi bi-" + (playing===c.id?"chevron-up":watched.includes(c.id)?"play-circle":"play-fill") + " me-1"} />
-                              {playing===c.id ? "Fechar" : watched.includes(c.id) ? "Assistir novamente" : "Assistir"}
+                              style={{background:playing===c.id?"#f1f5f9":watched.includes(c.id)?"#f0f4ff":"var(--jm-grad)",color:playing===c.id?"#64748b":watched.includes(c.id)?"var(--jm-mid)":"#fff",border:playing===c.id?"1px solid #e2e8f0":watched.includes(c.id)?"1px solid #d0dcf5":"none",borderRadius:9,padding:"7px 0",fontSize:".84rem",transition:"all .18s"}}
+                              onClick={() => setPlaying(playing === c.id ? null : c.id)}>
+                              <i className={"bi bi-" + (playing===c.id?"x-circle":watched.includes(c.id)?"arrow-repeat":"play-fill") + " me-1"} />
+                              {playing===c.id ? "Fechar vídeo" : watched.includes(c.id) ? "Assistir novamente" : "Assistir"}
                             </button>
                           )}
                           {playing === c.id && c.videoUrl && (
-                            <div className="mt-2 rounded-3 overflow-hidden">
+                            <div className="mt-2 rounded-3 overflow-hidden" style={{boxShadow:"0 4px 16px rgba(0,0,0,.18)"}}>
                               <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
                                 <iframe src={toEmbed(c.videoUrl)} allowFullScreen
                                   style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
@@ -1528,7 +1568,7 @@
                               ))}
                             </ul>
                             <button disabled={isCurrent}
-                              style={{background:isCurrent?"#e8f0fe":i===0?"var(--jm-grad)":"#f0f4ff",color:isCurrent?"var(--jm-mid)":i===0?"#fff":"var(--jm-mid)",border:isCurrent||i===0?"none":"1px solid #d0dcf5",borderRadius:9,padding:".62rem 1.5rem",fontWeight:700,cursor:isCurrent?"default":"pointer",width:"100%",fontSize:".92rem",fontFamily:"inherit",opacity:isCurrent?.85:1}}
+                              style={{background:isCurrent?"#e8f0fe":"var(--jm-grad)",color:isCurrent?"var(--jm-mid)":"#fff",border:"none",borderRadius:9,padding:".62rem 1.5rem",fontWeight:700,cursor:isCurrent?"default":"pointer",width:"100%",fontSize:".92rem",fontFamily:"inherit",opacity:isCurrent?.85:1,transition:"opacity .18s"}}
                               onClick={() => { if (!isCurrent) onSelectPlan(p); }}>
                               {isCurrent ? "✓ Plano atual" : "Selecionar"}
                             </button>
@@ -1811,7 +1851,6 @@
         setCurrentUser(updatedUser);
         saveAndSetUsuarios(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
         setShowPlanSelect(false);
-        setPage("home");
       }
 
       if (!loggedIn) {
