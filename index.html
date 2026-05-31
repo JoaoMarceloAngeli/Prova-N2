@@ -1545,7 +1545,20 @@
                             <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{selCourse.name}</div>
                             {vids.length > 0 && <div className="text-muted" style={{fontSize:".78rem"}}>{watchedCount}/{vids.length} vídeos assistidos</div>}
                           </div>
-                          <button className="btn-close" onClick={() => { setSelId(null); setPlaying(null); }} />
+                          <div className="d-flex align-items-center gap-2">
+                            {isCourseComplete(selCourse) && (
+                              issued.some(i => i.id === selCourse.id)
+                                ? <span className="badge fw-semibold" style={{background:"#e8f6f0",color:"#0d7a55",fontSize:".78rem",padding:".35rem .7rem"}}>
+                                    <i className="bi bi-award-fill me-1" />Certificado emitido
+                                  </span>
+                                : <button className="btn btn-sm fw-semibold"
+                                    style={{background:"var(--jm-grad)",color:"#fff",border:"none",borderRadius:8,fontSize:".8rem"}}
+                                    onClick={() => requestCert(selCourse.id)}>
+                                    <i className="bi bi-award me-1" />Solicitar Certificado
+                                  </button>
+                            )}
+                            <button className="btn-close" onClick={() => { setSelId(null); setPlaying(null); }} />
+                          </div>
                         </div>
                         {vids.length === 0 ? (
                           <p className="text-muted mb-0" style={{fontSize:".85rem"}}>Sem vídeos disponíveis.</p>
