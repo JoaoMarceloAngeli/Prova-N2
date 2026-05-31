@@ -1432,6 +1432,7 @@
     function JmCursosPage({ sub, setSub, courses, planos, trilhas, currentUser, subscriptions, onSelectPlan }) {
       const TABS = ["Trilhas de Aprendizado","Cursos","Meu Plano","Certificados"];
       const [playing, setPlaying] = useState(null);
+      const [selId,   setSelId]   = useState(null);
 
       // ── progresso ────────────────────────────────────────────────────────────
       const watchedKey = "jm_watched_" + (currentUser?.id || "anon");
@@ -1500,93 +1501,89 @@
           {sub === "Cursos" && (
             courses.length === 0
               ? <p className="text-muted">Nenhum curso disponível. O administrador ainda não cadastrou cursos.</p>
-              : (() => {
-                  const [selId, setSelId] = useState(null);
-                  const selCourse = courses.find(c => c.id === selId);
-                  return (
-                    <div>
-                      <div className="row g-3 mb-4">
-                        {courses.map(c => {
-                          const vids = getCourseVideos(c);
-                          const thumb = vids[0] ? getThumb(vids[0].url) : null;
-                          const complete = isCourseComplete(c);
-                          const isSelected = selId === c.id;
-                          return (
-                            <div className="col-6 col-md-4 col-lg-3" key={c.id}>
-                              <div className={"course-card" + (isSelected?" is-complete":"")}
-                                style={isSelected?{borderColor:"var(--jm-blue)",boxShadow:"0 0 0 2px rgba(21,101,192,.18)"}:{}}
-                                onClick={() => setSelId(isSelected ? null : c.id)}>
-                                <div className="course-thumb" style={thumb?{background:"#000",height:120}:{height:120}}>
-                                  {thumb
-                                    ? <img src={thumb} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
-                                    : <i className="bi bi-play-circle-fill" />}
-                                  {complete && (
-                                    <span style={{position:"absolute",top:6,right:6,background:"rgba(13,122,85,.92)",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",gap:3,zIndex:2}}>
-                                      <i className="bi bi-check-circle-fill" style={{fontSize:".62rem"}} />Concluído
-                                    </span>
+              : <div>
+                  <div className="row g-3 mb-4">
+                    {courses.map(c => {
+                      const vids = getCourseVideos(c);
+                      const thumb = vids[0] ? getThumb(vids[0].url) : null;
+                      const complete = isCourseComplete(c);
+                      const isSelected = selId === c.id;
+                      return (
+                        <div className="col-6 col-md-4 col-lg-3" key={c.id}>
+                          <div className={"course-card" + (complete?" is-complete":"")}
+                            style={isSelected?{borderColor:"var(--jm-blue)",boxShadow:"0 0 0 2px rgba(21,101,192,.18)"}:{}}
+                            onClick={() => { setSelId(isSelected ? null : c.id); setPlaying(null); }}>
+                            <div className="course-thumb" style={thumb?{background:"#000",height:120}:{height:120}}>
+                              {thumb
+                                ? <img src={thumb} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
+                                : <i className="bi bi-play-circle-fill" />}
+                              {complete && (
+                                <span style={{position:"absolute",top:6,right:6,background:"rgba(13,122,85,.92)",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",gap:3,zIndex:2}}>
+                                  <i className="bi bi-check-circle-fill" style={{fontSize:".62rem"}} />Concluído
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-2">
+                              <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)",lineHeight:1.3}}>{c.name}</div>
+                              <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{vids.length} vídeo{vids.length!==1?"s":""}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {selId && (() => {
+                    const selCourse = courses.find(c => c.id === selId);
+                    if (!selCourse) return null;
+                    const vids = getCourseVideos(selCourse);
+                    const watchedCount = vids.filter(v => watched.includes(v.id)).length;
+                    return (
+                      <div className="adm-card">
+                        <div className="d-flex justify-content-between align-items-center mb-3">
+                          <div>
+                            <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{selCourse.name}</div>
+                            {vids.length > 0 && <div className="text-muted" style={{fontSize:".78rem"}}>{watchedCount}/{vids.length} vídeos assistidos</div>}
+                          </div>
+                          <button className="btn-close" onClick={() => { setSelId(null); setPlaying(null); }} />
+                        </div>
+                        {vids.length === 0 ? (
+                          <p className="text-muted mb-0" style={{fontSize:".85rem"}}>Sem vídeos disponíveis.</p>
+                        ) : (
+                          <div className="d-flex flex-column gap-2">
+                            {vids.map(v => {
+                              const isWatched = watched.includes(v.id);
+                              return (
+                                <div key={v.id}>
+                                  <div className="d-flex align-items-center gap-2 p-2 rounded-2"
+                                    style={{background:"#f8faff",border:"1px solid #e8f0fe"}}>
+                                    <i className={"bi " + (isWatched?"bi-check-circle-fill":"bi-play-circle")}
+                                      style={{color:isWatched?"#0d7a55":"var(--jm-blue)",fontSize:"1rem",flexShrink:0}} />
+                                    <span className="flex-grow-1" style={{fontSize:".88rem",color:"var(--jm-navy)"}}>{v.title}</span>
+                                    <button className="btn btn-sm fw-semibold flex-shrink-0"
+                                      style={{background:playing===v.id?"#f1f5f9":"var(--jm-grad)",color:playing===v.id?"#64748b":"#fff",border:playing===v.id?"1px solid #e2e8f0":"none",borderRadius:8,fontSize:".8rem"}}
+                                      onClick={() => setPlaying(playing===v.id ? null : v.id)}>
+                                      <i className={"bi bi-" + (playing===v.id?"x-circle":"play-fill") + " me-1"} />
+                                      {playing===v.id ? "Fechar" : isWatched ? "Rever" : "Assistir"}
+                                    </button>
+                                  </div>
+                                  {playing === v.id && (
+                                    <div className="mt-1 rounded-3 overflow-hidden" style={{boxShadow:"0 4px 16px rgba(0,0,0,.18)"}}>
+                                      <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
+                                        <iframe src={toEmbed(v.url)} allowFullScreen
+                                          style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
+                                      </div>
+                                    </div>
                                   )}
                                 </div>
-                                <div className="p-2">
-                                  <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)",lineHeight:1.3}}>{c.name}</div>
-                                  <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{vids.length} vídeo{vids.length!==1?"s":""}</div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {selCourse && (() => {
-                        const vids = getCourseVideos(selCourse);
-                        const watchedCount = vids.filter(v => watched.includes(v.id)).length;
-                        return (
-                          <div className="adm-card">
-                            <div className="d-flex justify-content-between align-items-center mb-3">
-                              <div>
-                                <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{selCourse.name}</div>
-                                {vids.length > 0 && <div className="text-muted" style={{fontSize:".78rem"}}>{watchedCount}/{vids.length} vídeos assistidos</div>}
-                              </div>
-                              <button className="btn-close" onClick={() => setSelId(null)} />
-                            </div>
-                            {vids.length === 0 ? (
-                              <p className="text-muted mb-0" style={{fontSize:".85rem"}}>Sem vídeos disponíveis.</p>
-                            ) : (
-                              <div className="d-flex flex-column gap-2">
-                                {vids.map(v => {
-                                  const isWatched = watched.includes(v.id);
-                                  return (
-                                    <div key={v.id}>
-                                      <div className="d-flex align-items-center gap-2 p-2 rounded-2"
-                                        style={{background:"#f8faff",border:"1px solid #e8f0fe"}}>
-                                        <i className={"bi " + (isWatched?"bi-check-circle-fill":"bi-play-circle")}
-                                          style={{color:isWatched?"#0d7a55":"var(--jm-blue)",fontSize:"1rem",flexShrink:0}} />
-                                        <span className="flex-grow-1" style={{fontSize:".88rem",color:"var(--jm-navy)"}}>{v.title}</span>
-                                        <button className="btn btn-sm fw-semibold flex-shrink-0"
-                                          style={{background:playing===v.id?"#f1f5f9":"var(--jm-grad)",color:playing===v.id?"#64748b":"#fff",border:playing===v.id?"1px solid #e2e8f0":"none",borderRadius:8,fontSize:".8rem"}}
-                                          onClick={() => setPlaying(playing===v.id ? null : v.id)}>
-                                          <i className={"bi bi-" + (playing===v.id?"x-circle":"play-fill") + " me-1"} />
-                                          {playing===v.id ? "Fechar" : isWatched ? "Rever" : "Assistir"}
-                                        </button>
-                                      </div>
-                                      {playing === v.id && (
-                                        <div className="mt-1 rounded-3 overflow-hidden" style={{boxShadow:"0 4px 16px rgba(0,0,0,.18)"}}>
-                                          <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
-                                            <iframe src={toEmbed(v.url)} allowFullScreen
-                                              style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
-                                          </div>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
+                              );
+                            })}
                           </div>
-                        );
-                      })()}
-                    </div>
-                  );
-                })()
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
           )}
 
           {sub === "Meu Plano" && (() => {
