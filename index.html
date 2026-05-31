@@ -1892,16 +1892,33 @@
       const [sub, setSub]                       = useState("Trilhas de Aprendizado");
       const [open, setOpen]                     = useState(true);
 
-      const [courses,  setCourses]  = useState([]);
-      const [planos,   setPlanos]   = useState([]);
-      const [trilhas,  setTrilhas]  = useState([]);
-      const [usuarios, setUsuarios] = useState(() => {
-        try { return JSON.parse(localStorage.getItem("jm_usuarios") || "[]"); } catch { return []; }
-      });
-      const [subscriptions, setSubscriptions] = useState(() => {
-        try { return JSON.parse(localStorage.getItem("jm_subscriptions") || "[]"); } catch { return []; }
-      });
+      const [courses,  setCourses]  = useState(() => { try { return JSON.parse(localStorage.getItem("jm_courses")  || "[]"); } catch { return []; } });
+      const [planos,   setPlanos]   = useState(() => { try { return JSON.parse(localStorage.getItem("jm_planos")   || "[]"); } catch { return []; } });
+      const [trilhas,  setTrilhas]  = useState(() => { try { return JSON.parse(localStorage.getItem("jm_trilhas")  || "[]"); } catch { return []; } });
+      const [usuarios, setUsuarios] = useState(() => { try { return JSON.parse(localStorage.getItem("jm_usuarios") || "[]"); } catch { return []; } });
+      const [subscriptions, setSubscriptions] = useState(() => { try { return JSON.parse(localStorage.getItem("jm_subscriptions") || "[]"); } catch { return []; } });
 
+      function saveAndSetCourses(updater) {
+        setCourses(prev => {
+          const next = typeof updater === "function" ? updater(prev) : updater;
+          localStorage.setItem("jm_courses", JSON.stringify(next));
+          return next;
+        });
+      }
+      function saveAndSetPlanos(updater) {
+        setPlanos(prev => {
+          const next = typeof updater === "function" ? updater(prev) : updater;
+          localStorage.setItem("jm_planos", JSON.stringify(next));
+          return next;
+        });
+      }
+      function saveAndSetTrilhas(updater) {
+        setTrilhas(prev => {
+          const next = typeof updater === "function" ? updater(prev) : updater;
+          localStorage.setItem("jm_trilhas", JSON.stringify(next));
+          return next;
+        });
+      }
       function saveAndSetUsuarios(updater) {
         setUsuarios(prev => {
           const next = typeof updater === "function" ? updater(prev) : updater;
@@ -1909,7 +1926,6 @@
           return next;
         });
       }
-
       function saveAndSetSubscriptions(updater) {
         setSubscriptions(prev => {
           const next = typeof updater === "function" ? updater(prev) : updater;
@@ -1964,9 +1980,9 @@
       if (isAdmin) {
         return (
           <AdminPanel
-            courses={courses}      setCourses={setCourses}
-            planos={planos}        setPlanos={setPlanos}
-            trilhas={trilhas}      setTrilhas={setTrilhas}
+            courses={courses}      setCourses={saveAndSetCourses}
+            planos={planos}        setPlanos={saveAndSetPlanos}
+            trilhas={trilhas}      setTrilhas={saveAndSetTrilhas}
             usuarios={usuarios}    setUsuarios={saveAndSetUsuarios}
             subscriptions={subscriptions}
             onLogout={() => { setIsAdmin(false); setLoggedIn(false); setCurrentUser(null); }}
