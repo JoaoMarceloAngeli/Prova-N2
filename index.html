@@ -1525,7 +1525,14 @@
                             </div>
                             <div className="p-2">
                               <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)",lineHeight:1.3}}>{c.name}</div>
-                              <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{vids.length} vídeo{vids.length!==1?"s":""}</div>
+                              {complete
+                                ? <span className="d-inline-flex align-items-center gap-1 mt-1" style={{fontSize:".73rem",fontWeight:700,color:"#0d7a55"}}>
+                                    <i className="bi bi-check-circle-fill" />Concluído
+                                  </span>
+                                : <div className="text-muted mt-1" style={{fontSize:".75rem"}}>
+                                    {vids.length > 0 ? `${vids.filter(v=>watched.includes(v.id)).length}/${vids.length} vídeo${vids.length!==1?"s":""}` : `${vids.length} vídeo${vids.length!==1?"s":""}`}
+                                  </div>
+                              }
                             </div>
                           </div>
                         </div>
@@ -1575,7 +1582,7 @@
                                     <span className="flex-grow-1" style={{fontSize:".88rem",color:"var(--jm-navy)"}}>{v.title}</span>
                                     <button className="btn btn-sm fw-semibold flex-shrink-0"
                                       style={{background:playing===v.id?"#f1f5f9":"var(--jm-grad)",color:playing===v.id?"#64748b":"#fff",border:playing===v.id?"1px solid #e2e8f0":"none",borderRadius:8,fontSize:".8rem"}}
-                                      onClick={() => setPlaying(playing===v.id ? null : v.id)}>
+                                      onClick={() => { const next = playing===v.id ? null : v.id; setPlaying(next); if (next) markWatched(next); }}>
                                       <i className={"bi bi-" + (playing===v.id?"x-circle":"play-fill") + " me-1"} />
                                       {playing===v.id ? "Fechar" : isWatched ? "Rever" : "Assistir"}
                                     </button>
@@ -1752,7 +1759,7 @@
           )}
 
           {sub === "Certificados" && (() => {
-            const completedCourses  = courses.filter(c => c.videoUrl && watched.includes(c.id));
+            const completedCourses  = courses.filter(c => getCourseVideos(c).length > 0 && isCourseComplete(c));
             const completedTrails   = trilhas.filter(t => isTrailComplete(t));
             const issuedCourses     = completedCourses.filter(c => issued.some(i => i.id === c.id));
             const pendingCourses    = completedCourses.filter(c => !issued.some(i => i.id === c.id));
