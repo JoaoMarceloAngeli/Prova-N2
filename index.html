@@ -280,6 +280,11 @@
       const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
       return m ? "https://www.youtube.com/embed/" + m[1] + "?enablejsapi=1" : url;
     }
+    function getThumb(url) {
+      if (!url) return null;
+      const m = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/);
+      return m ? "https://img.youtube.com/vi/" + m[1] + "/mqdefault.jpg" : null;
+    }
 
     /* ════════════════════════════════════════
        LOGIN PAGE
@@ -416,11 +421,11 @@
                 <div className="bg-white rounded-3 p-3 d-flex align-items-center gap-3"
                   style={{border:"1px solid #e3e8f0",boxShadow:"0 2px 8px rgba(0,0,0,.04)"}}>
                   <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                    style={{width:46,height:46,background:s.color+"1a",color:s.color,fontSize:"1.25rem"}}>
+                    style={{width:46,height:46,background:"#f1f3f5",color:"var(--jm-navy)",fontSize:"1.25rem"}}>
                     <i className={"bi " + s.icon} />
                   </div>
                   <div>
-                    <div className="fw-bold lh-1" style={{fontSize:"1.4rem",color:s.color}}>{s.value}</div>
+                    <div className="fw-bold lh-1" style={{fontSize:"1.4rem",color:"var(--jm-navy)"}}>{s.value}</div>
                     <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{s.label}</div>
                   </div>
                 </div>
@@ -449,19 +454,26 @@
                   </div>
                 ) : (
                   <div className="row g-2">
-                    {courses.slice(0,4).map(c => (
-                      <div className="col-6" key={c.id}>
-                        <div className="course-card" onClick={() => onNavigate("jmcursos","Cursos")}>
-                          <div className="course-thumb">
-                            <i className="bi bi-play-circle-fill" />
-                          </div>
-                          <div className="p-2">
-                            <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)"}}>{c.name}</div>
-                            {c.description && <div className="text-muted mt-1" style={{fontSize:".75rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.description}</div>}
+                    {courses.slice(0,4).map(c => {
+                      const firstVid = c.videos?.[0];
+                      const thumb = firstVid ? getThumb(firstVid.url) : getThumb(c.videoUrl);
+                      const vidCount = c.videos?.length || (c.videoUrl ? 1 : 0);
+                      return (
+                        <div className="col-6" key={c.id}>
+                          <div className="course-card" onClick={() => onNavigate("jmcursos","Cursos")}>
+                            <div className="course-thumb" style={thumb ? {background:"#000"} : {}}>
+                              {thumb
+                                ? <img src={thumb} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
+                                : <i className="bi bi-play-circle-fill" />}
+                            </div>
+                            <div className="p-2">
+                              <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)"}}>{c.name}</div>
+                              <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{vidCount} vídeo{vidCount!==1?"s":""}</div>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -471,10 +483,10 @@
             <div className="col-12 col-lg-4 d-flex flex-column gap-3">
               <div className="bg-white rounded-3 p-4" style={{border:"1px solid #e3e8f0",boxShadow:"0 2px 8px rgba(0,0,0,.04)"}}>
                 <h6 className="fw-bold mb-3" style={{color:"var(--jm-navy)"}}>
-                  <i className="bi bi-credit-card-2-front me-2" style={{color:"#0d7a55"}} />Meu plano
+                  <i className="bi bi-credit-card-2-front me-2" style={{color:"var(--jm-blue)"}} />Meu plano
                 </h6>
                 {planos.length > 0 ? (
-                  <div className="p-3 rounded-3" style={{background:"linear-gradient(135deg,#e8f0fe,#f0f6ff)",border:"1px solid #c5d8fa"}}>
+                  <div className="p-3 rounded-3" style={{background:"#f8faff",border:"1px solid #e0e8f8"}}>
                     <div className="fw-bold" style={{color:"var(--jm-navy)",fontSize:".95rem"}}>{planos[0].name}</div>
                     <div className="fw-bold mt-1" style={{color:"var(--jm-blue)",fontSize:"1.2rem"}}>{planos[0].price}<span style={{fontSize:".75rem",fontWeight:400,color:"#888"}}>/{planos[0].period}</span></div>
                   </div>
@@ -517,10 +529,12 @@
 
     /* ── Cursos ── */
     function AdminCursos({ courses, setCourses }) {
-      const empty = { name:"", description:"", videoUrl:"", workload:"" };
-      const [form, setForm]       = useState(empty);
-      const [editing, setEditing] = useState(null);
-      const [playing, setPlaying] = useState(null);
+      const empty = { name:"", description:"", videos:[], workload:"" };
+      const [form, setForm]         = useState(empty);
+      const [editing, setEditing]   = useState(null);
+      const [playing, setPlaying]   = useState(null);
+      const [vidTitle, setVidTitle] = useState("");
+      const [vidUrl, setVidUrl]     = useState("");
 
       function save(e) {
         e.preventDefault();
@@ -534,9 +548,20 @@
         setForm(empty);
       }
 
-      function startEdit(c) { setForm({name:c.name,description:c.description,videoUrl:c.videoUrl,workload:c.workload||""}); setEditing(c.id); }
+      function addVideo() {
+        if (!vidUrl.trim()) return;
+        const v = { id: uid(), title: vidTitle.trim() || ("Vídeo " + (form.videos.length + 1)), url: vidUrl.trim() };
+        setForm(f => ({...f, videos: [...f.videos, v]}));
+        setVidTitle(""); setVidUrl("");
+      }
+      function removeVideo(id) { setForm(f => ({...f, videos: f.videos.filter(v => v.id !== id)})); }
+
+      function startEdit(c) {
+        setForm({name:c.name, description:c.description, videos:c.videos||[], workload:c.workload||""});
+        setEditing(c.id);
+      }
       function remove(id)   { setCourses(prev => prev.filter(c => c.id !== id)); if (playing === id) setPlaying(null); }
-      function cancel()     { setForm(empty); setEditing(null); }
+      function cancel()     { setForm(empty); setEditing(null); setVidTitle(""); setVidUrl(""); }
 
       return (
         <div className="row g-4">
@@ -563,9 +588,27 @@
                     value={form.workload} onChange={e => setForm({...form, workload: e.target.value})} />
                 </div>
                 <div className="mb-4">
-                  <label className="jm-label">URL do vídeo (YouTube ou direto)</label>
-                  <input className="adm-input" placeholder="https://youtube.com/watch?v=..."
-                    value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} />
+                  <label className="jm-label">Vídeos do curso</label>
+                  <div className="d-flex gap-2 mb-2">
+                    <input className="adm-input" placeholder="Título do vídeo" value={vidTitle}
+                      onChange={e => setVidTitle(e.target.value)} style={{flex:1}} />
+                    <input className="adm-input" placeholder="URL (YouTube...)" value={vidUrl}
+                      onChange={e => setVidUrl(e.target.value)} style={{flex:2}} />
+                    <button type="button" className="btn btn-sm btn-outline-secondary px-3" onClick={addVideo}>+</button>
+                  </div>
+                  {form.videos.length > 0 && (
+                    <div className="d-flex flex-column gap-1">
+                      {form.videos.map((v, i) => (
+                        <div key={v.id} className="d-flex align-items-center gap-2 p-2 rounded-2"
+                          style={{background:"#f8faff",border:"1px solid #e8f0fe"}}>
+                          <span style={{fontSize:".78rem",color:"var(--jm-navy)",flex:1}}>{i+1}. {v.title}</span>
+                          <button type="button" className="btn btn-sm btn-light text-danger p-1" onClick={() => removeVideo(v.id)}>
+                            <i className="bi bi-x-lg" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="d-flex gap-2">
                   <button type="submit" className="adm-btn-primary flex-grow-1">
@@ -587,40 +630,35 @@
                 Cursos cadastrados <span className="badge ms-1 rounded-pill" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".75rem"}}>{courses.length}</span>
               </h6>
               {courses.length === 0 && <p className="text-muted" style={{fontSize:".88rem"}}>Nenhum curso ainda. Adicione o primeiro!</p>}
-              {courses.map(c => (
-                <div key={c.id}>
-                  <div className="adm-item-row">
-                    <div className="flex-grow-1 min-width-0">
-                      <div className="fw-semibold" style={{fontSize:".92rem",color:"var(--jm-navy)"}}>{c.name}</div>
-                      {c.description && <div className="text-muted mt-1" style={{fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.description}</div>}
-                      {c.workload && <span className="badge mt-1" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".72rem"}}><i className="bi bi-clock me-1"/>{c.workload}</span>}
-                      {c.videoUrl && (
-                        <button className="btn btn-sm mt-1 p-0 fw-semibold" style={{color:"var(--jm-blue)",fontSize:".78rem",background:"none",border:"none"}}
-                          onClick={() => setPlaying(playing === c.id ? null : c.id)}>
-                          <i className={"bi bi-" + (playing===c.id ? "chevron-up" : "play-fill") + " me-1"} />
-                          {playing === c.id ? "Fechar vídeo" : "Ver vídeo"}
-                        </button>
+              {courses.map(c => {
+                const vids = c.videos || [];
+                const thumb = vids[0] ? getThumb(vids[0].url) : getThumb(c.videoUrl);
+                return (
+                  <div key={c.id}>
+                    <div className="adm-item-row">
+                      {thumb && (
+                        <img src={thumb} alt="" style={{width:52,height:36,objectFit:"cover",borderRadius:6,flexShrink:0}} />
                       )}
-                    </div>
-                    <div className="d-flex gap-1 flex-shrink-0">
-                      <button className="btn btn-sm btn-light" onClick={() => startEdit(c)} title="Editar">
-                        <i className="bi bi-pencil" />
-                      </button>
-                      <button className="btn btn-sm btn-light text-danger" onClick={() => remove(c.id)} title="Remover">
-                        <i className="bi bi-trash" />
-                      </button>
-                    </div>
-                  </div>
-                  {playing === c.id && c.videoUrl && (
-                    <div className="mb-2 rounded-3 overflow-hidden" style={{border:"1px solid #d0dcf5"}}>
-                      <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
-                        <iframe src={toEmbed(c.videoUrl)} allowFullScreen
-                          style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
+                      <div className="flex-grow-1 min-width-0">
+                        <div className="fw-semibold" style={{fontSize:".92rem",color:"var(--jm-navy)"}}>{c.name}</div>
+                        {c.description && <div className="text-muted mt-1" style={{fontSize:".78rem",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{c.description}</div>}
+                        <div className="d-flex gap-2 mt-1 flex-wrap">
+                          {c.workload && <span className="badge" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".72rem"}}><i className="bi bi-clock me-1"/>{c.workload}</span>}
+                          {vids.length > 0 && <span className="badge" style={{background:"#e8f0fe",color:"var(--jm-mid)",fontSize:".72rem"}}><i className="bi bi-play-circle me-1"/>{vids.length} vídeo{vids.length!==1?"s":""}</span>}
+                        </div>
+                      </div>
+                      <div className="d-flex gap-1 flex-shrink-0">
+                        <button className="btn btn-sm btn-light" onClick={() => startEdit(c)} title="Editar">
+                          <i className="bi bi-pencil" />
+                        </button>
+                        <button className="btn btn-sm btn-light text-danger" onClick={() => remove(c.id)} title="Remover">
+                          <i className="bi bi-trash" />
+                        </button>
                       </div>
                     </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
@@ -845,10 +883,10 @@
             {stats.map((s,i) => (
               <div className="col-6 col-md-4 col-lg" key={i}>
                 <div className="adm-stat-card clickable" onClick={() => onTabChange(s.tab)}>
-                  <div style={{width:40,height:40,borderRadius:10,background:s.color+"1a",color:s.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",marginBottom:".7rem"}}>
+                  <div style={{width:40,height:40,borderRadius:10,background:"#f1f3f5",color:"var(--jm-navy)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:"1.2rem",marginBottom:".7rem"}}>
                     <i className={"bi " + s.icon} />
                   </div>
-                  <div className="fw-bold lh-1" style={{fontSize:"1.6rem",color:s.color}}>{s.value}</div>
+                  <div className="fw-bold lh-1" style={{fontSize:"1.6rem",color:"var(--jm-navy)"}}>{s.value}</div>
                   <div className="text-muted mt-1" style={{fontSize:".77rem"}}>{s.label}</div>
                 </div>
               </div>
@@ -1406,9 +1444,17 @@
         setWatched(n);
         localStorage.setItem(watchedKey, JSON.stringify(n));
       }
-      function isCourseComplete(c) { return !c.videoUrl || watched.includes(c.id); }
+      function getCourseVideos(c) {
+        if (c.videos && c.videos.length > 0) return c.videos;
+        if (c.videoUrl) return [{ id: c.id + "_v", title: "Assistir", url: c.videoUrl }];
+        return [];
+      }
+      function isCourseComplete(c) {
+        const vids = getCourseVideos(c);
+        return vids.length === 0 || vids.every(v => watched.includes(v.id));
+      }
 
-      // Marca como concluído somente quando o vídeo realmente começa a tocar (playerState 1)
+      // Marca como assistido quando o vídeo começa a tocar (playerState 1)
       useEffect(() => {
         if (!playing) return;
         function onMsg(e) {
@@ -1454,54 +1500,93 @@
           {sub === "Cursos" && (
             courses.length === 0
               ? <p className="text-muted">Nenhum curso disponível. O administrador ainda não cadastrou cursos.</p>
-              : <div className="row g-3">
-                  {courses.map(c => (
-                    <div className="col-12 col-md-6 col-lg-4" key={c.id}>
-                      <div className={"course-card" + (watched.includes(c.id) ? " is-complete" : "")}>
-                        <div className="course-thumb">
-                          <i className="bi bi-play-circle-fill" />
-                          {watched.includes(c.id) && (
-                            <span style={{position:"absolute",top:10,right:10,background:"rgba(13,122,85,.92)",backdropFilter:"blur(4px)",color:"#fff",borderRadius:20,padding:"3px 10px",fontSize:".71rem",fontWeight:700,display:"flex",alignItems:"center",gap:4,zIndex:2,boxShadow:"0 1px 6px rgba(0,0,0,.18)"}}>
-                              <i className="bi bi-check-circle-fill" style={{fontSize:".68rem"}} />Concluído
-                            </span>
-                          )}
-                        </div>
-                        <div className="p-3 d-flex flex-column flex-grow-1">
-                          <div className="fw-bold mb-1" style={{color:"var(--jm-navy)",fontSize:".95rem",lineHeight:1.3}}>{c.name}</div>
-                          {c.description && <p className="text-muted mb-2" style={{fontSize:".82rem",lineHeight:1.45}}>{c.description}</p>}
-                          <div className="d-flex flex-wrap gap-2 mb-3 mt-auto pt-1">
-                            {c.workload && (
-                              <span style={{background:"#f0f4ff",color:"var(--jm-mid)",borderRadius:20,padding:"3px 10px",fontSize:".74rem",fontWeight:500,display:"inline-flex",alignItems:"center",gap:4}}>
-                                <i className="bi bi-clock" style={{fontSize:".7rem"}} />{c.workload}h
-                              </span>
-                            )}
-                            {c.videoUrl && (
-                              <span style={{background:"#e8f6f0",color:"#0d7a55",borderRadius:20,padding:"3px 10px",fontSize:".74rem",fontWeight:500,display:"inline-flex",alignItems:"center",gap:4}}>
-                                <i className="bi bi-play-circle" style={{fontSize:".7rem"}} />Com vídeo
-                              </span>
-                            )}
-                          </div>
-                          {c.videoUrl && (
-                            <button className="btn btn-sm w-100 fw-semibold"
-                              style={{background:playing===c.id?"#f1f5f9":watched.includes(c.id)?"#f0f4ff":"var(--jm-grad)",color:playing===c.id?"#64748b":watched.includes(c.id)?"var(--jm-mid)":"#fff",border:playing===c.id?"1px solid #e2e8f0":watched.includes(c.id)?"1px solid #d0dcf5":"none",borderRadius:9,padding:"7px 0",fontSize:".84rem",transition:"all .18s"}}
-                              onClick={() => setPlaying(playing === c.id ? null : c.id)}>
-                              <i className={"bi bi-" + (playing===c.id?"x-circle":watched.includes(c.id)?"arrow-repeat":"play-fill") + " me-1"} />
-                              {playing===c.id ? "Fechar vídeo" : watched.includes(c.id) ? "Assistir novamente" : "Assistir"}
-                            </button>
-                          )}
-                          {playing === c.id && c.videoUrl && (
-                            <div className="mt-2 rounded-3 overflow-hidden" style={{boxShadow:"0 4px 16px rgba(0,0,0,.18)"}}>
-                              <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
-                                <iframe src={toEmbed(c.videoUrl)} allowFullScreen
-                                  style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
+              : (() => {
+                  const [selId, setSelId] = useState(null);
+                  const selCourse = courses.find(c => c.id === selId);
+                  return (
+                    <div>
+                      <div className="row g-3 mb-4">
+                        {courses.map(c => {
+                          const vids = getCourseVideos(c);
+                          const thumb = vids[0] ? getThumb(vids[0].url) : null;
+                          const complete = isCourseComplete(c);
+                          const isSelected = selId === c.id;
+                          return (
+                            <div className="col-6 col-md-4 col-lg-3" key={c.id}>
+                              <div className={"course-card" + (isSelected?" is-complete":"")}
+                                style={isSelected?{borderColor:"var(--jm-blue)",boxShadow:"0 0 0 2px rgba(21,101,192,.18)"}:{}}
+                                onClick={() => setSelId(isSelected ? null : c.id)}>
+                                <div className="course-thumb" style={thumb?{background:"#000",height:120}:{height:120}}>
+                                  {thumb
+                                    ? <img src={thumb} alt={c.name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} />
+                                    : <i className="bi bi-play-circle-fill" />}
+                                  {complete && (
+                                    <span style={{position:"absolute",top:6,right:6,background:"rgba(13,122,85,.92)",color:"#fff",borderRadius:20,padding:"2px 8px",fontSize:".68rem",fontWeight:700,display:"flex",alignItems:"center",gap:3,zIndex:2}}>
+                                      <i className="bi bi-check-circle-fill" style={{fontSize:".62rem"}} />Concluído
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="p-2">
+                                  <div className="fw-semibold" style={{fontSize:".85rem",color:"var(--jm-navy)",lineHeight:1.3}}>{c.name}</div>
+                                  <div className="text-muted mt-1" style={{fontSize:".75rem"}}>{vids.length} vídeo{vids.length!==1?"s":""}</div>
+                                </div>
                               </div>
                             </div>
-                          )}
-                        </div>
+                          );
+                        })}
                       </div>
+
+                      {selCourse && (() => {
+                        const vids = getCourseVideos(selCourse);
+                        const watchedCount = vids.filter(v => watched.includes(v.id)).length;
+                        return (
+                          <div className="adm-card">
+                            <div className="d-flex justify-content-between align-items-center mb-3">
+                              <div>
+                                <div className="fw-bold" style={{color:"var(--jm-navy)"}}>{selCourse.name}</div>
+                                {vids.length > 0 && <div className="text-muted" style={{fontSize:".78rem"}}>{watchedCount}/{vids.length} vídeos assistidos</div>}
+                              </div>
+                              <button className="btn-close" onClick={() => setSelId(null)} />
+                            </div>
+                            {vids.length === 0 ? (
+                              <p className="text-muted mb-0" style={{fontSize:".85rem"}}>Sem vídeos disponíveis.</p>
+                            ) : (
+                              <div className="d-flex flex-column gap-2">
+                                {vids.map(v => {
+                                  const isWatched = watched.includes(v.id);
+                                  return (
+                                    <div key={v.id}>
+                                      <div className="d-flex align-items-center gap-2 p-2 rounded-2"
+                                        style={{background:"#f8faff",border:"1px solid #e8f0fe"}}>
+                                        <i className={"bi " + (isWatched?"bi-check-circle-fill":"bi-play-circle")}
+                                          style={{color:isWatched?"#0d7a55":"var(--jm-blue)",fontSize:"1rem",flexShrink:0}} />
+                                        <span className="flex-grow-1" style={{fontSize:".88rem",color:"var(--jm-navy)"}}>{v.title}</span>
+                                        <button className="btn btn-sm fw-semibold flex-shrink-0"
+                                          style={{background:playing===v.id?"#f1f5f9":"var(--jm-grad)",color:playing===v.id?"#64748b":"#fff",border:playing===v.id?"1px solid #e2e8f0":"none",borderRadius:8,fontSize:".8rem"}}
+                                          onClick={() => setPlaying(playing===v.id ? null : v.id)}>
+                                          <i className={"bi bi-" + (playing===v.id?"x-circle":"play-fill") + " me-1"} />
+                                          {playing===v.id ? "Fechar" : isWatched ? "Rever" : "Assistir"}
+                                        </button>
+                                      </div>
+                                      {playing === v.id && (
+                                        <div className="mt-1 rounded-3 overflow-hidden" style={{boxShadow:"0 4px 16px rgba(0,0,0,.18)"}}>
+                                          <div style={{position:"relative",paddingTop:"56.25%",background:"#000"}}>
+                                            <iframe src={toEmbed(v.url)} allowFullScreen
+                                              style={{position:"absolute",top:0,left:0,width:"100%",height:"100%",border:"none"}} />
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
-                  ))}
-                </div>
+                  );
+                })()
           )}
 
           {sub === "Meu Plano" && (() => {
