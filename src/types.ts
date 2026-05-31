@@ -32,11 +32,28 @@ export interface TrailCourse {
   order: number;
 }
 
+export interface CourseVideo {
+  id: string;
+  title: string;
+  url: string;
+  order: number;
+}
+
 export interface Course {
   id: string;
   title: string;
   description: string;
+  videos: CourseVideo[];
   createdAt: string;
+}
+
+export interface CourseProgress {
+  id: string;
+  userId: string;
+  courseId: string;
+  watchedVideoIds: string[];
+  completed: boolean;
+  completedAt?: string;
 }
 
 export interface Plan {
