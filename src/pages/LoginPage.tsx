@@ -66,18 +66,6 @@ export default function LoginPage() {
         .jm-btn { background:linear-gradient(135deg,#1a3a8f,#1565c0); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:1rem; padding:.65rem; width:100%; }
       `}</style>
       <div className="jm-card">
-        <div className="text-center mb-3">
-          <div style={{ fontSize: "2.4rem" }}>🎓</div>
-          <div className="fw-bold" style={{ fontSize: "1.8rem", color: "#0d1b4b" }}>
-            JM <span style={{ color: "#1565c0" }}>Cursos</span>
-          </div>
-          <p className="text-muted mt-1 mb-0" style={{ fontSize: "0.83rem" }}>
-            Plataforma de ensino online
-          </p>
-        </div>
-        <div
-          style={{ height: 3, width: 48, background: "linear-gradient(90deg,#0d1b4b,#1565c0)", borderRadius: 2, margin: "1rem auto 1.5rem" }}
-        />
         <div className="d-flex gap-2 justify-content-center mb-4">
           <button className={`jm-toggle ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setErro(""); }}>Entrar</button>
           <button className={`jm-toggle ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setErro(""); }}>Criar conta</button>
@@ -86,21 +74,21 @@ export default function LoginPage() {
           {mode === "register" && (
             <div className="mb-3">
               <label className="d-block fw-semibold mb-1" style={{ fontSize: ".85rem", color: "#1a3a8f" }}>Nome completo</label>
-              <input className="jm-input" placeholder="Seu nome" value={nome} onChange={e => setNome(e.target.value)} required />
+              <input className="jm-input" value={nome} onChange={e => setNome(e.target.value)} required />
             </div>
           )}
           <div className="mb-3">
             <label className="d-block fw-semibold mb-1" style={{ fontSize: ".85rem", color: "#1a3a8f" }}>E-mail</label>
-            <input type="email" className="jm-input" placeholder="seu@email.com" value={email} onChange={e => setEmail(e.target.value)} required />
+            <input type="email" className="jm-input" value={email} onChange={e => setEmail(e.target.value)} required />
           </div>
           <div className="mb-3">
             <label className="d-block fw-semibold mb-1" style={{ fontSize: ".85rem", color: "#1a3a8f" }}>Senha</label>
-            <input type="password" className="jm-input" placeholder="••••••••" value={senha} onChange={e => setSenha(e.target.value)} required />
+            <input type="password" className="jm-input" value={senha} onChange={e => setSenha(e.target.value)} required />
           </div>
           {mode === "register" && (
             <div className="mb-3">
               <label className="d-block fw-semibold mb-1" style={{ fontSize: ".85rem", color: "#1a3a8f" }}>Confirmar senha</label>
-              <input type="password" className="jm-input" placeholder="••••••••" value={confirmar} onChange={e => setConfirmar(e.target.value)} required />
+              <input type="password" className="jm-input" value={confirmar} onChange={e => setConfirmar(e.target.value)} required />
             </div>
           )}
           {erro && (
