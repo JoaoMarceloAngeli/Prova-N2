@@ -20,7 +20,7 @@ export default function AssinaturasPage() {
       pagamentoService.getAll(),
     ]).then(([a, u, p, pg]) => {
       setAssinaturas(a); setUsuarios(u); setPlanos(p); setPagamentos(pg);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const ativas = assinaturas.filter(a => a.status === "ativa").length;

@@ -15,7 +15,7 @@ export default function MeuPlanoPage() {
   useEffect(() => {
     Promise.all([planoService.getAll(), assinaturaService.getByUsuario(usuario?.id || "")]).then(([p, a]) => {
       setPlanos(p); setAssinaturas(a);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [usuario]);
 
   const assinaturaAtiva = assinaturas.find(a => a.status === "ativa");

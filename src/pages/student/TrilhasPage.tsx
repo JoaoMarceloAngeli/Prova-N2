@@ -20,7 +20,7 @@ export default function TrilhasStudentPage() {
       trilhaCursoService.getAll(), cursoService.getAll(),
     ]).then(([t, c, tc, cs]) => {
       setTrilhas(t); setCategorias(c); setTrilhasCursos(tc); setCursos(cs);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const filtradas = filtroCategoria

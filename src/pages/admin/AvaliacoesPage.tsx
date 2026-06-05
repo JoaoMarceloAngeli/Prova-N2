@@ -29,7 +29,7 @@ export default function AvaliacoesPage() {
       cursoService.getAll(),
     ]).then(([a, u, c]) => {
       setAvaliacoes(a); setUsuarios(u); setCursos(c);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const filtradas = filtroCurso

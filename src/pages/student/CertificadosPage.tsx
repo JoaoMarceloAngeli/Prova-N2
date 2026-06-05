@@ -20,7 +20,7 @@ export default function CertificadosStudentPage() {
       trilhaService.getAll(),
     ]).then(([c, cs, t]) => {
       setCertificados(c); setCursos(cs); setTrilhas(t);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, [usuario]);
 
   if (loading) return <div className="text-center py-5"><div className="spinner-border text-primary" /></div>;

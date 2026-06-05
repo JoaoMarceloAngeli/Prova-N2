@@ -35,12 +35,17 @@ export default function CursosPage() {
 
   async function carregar() {
     setLoading(true);
-    const [c, m, a, cat] = await Promise.all([
-      cursoService.getAll(), moduloService.getAll(),
-      aulaService.getAll(), categoriaService.getAll(),
-    ]);
-    setCursos(c); setModulos(m); setAulas(a); setCategorias(cat);
-    setLoading(false);
+    try {
+      const [c, m, a, cat] = await Promise.all([
+        cursoService.getAll(), moduloService.getAll(),
+        aulaService.getAll(), categoriaService.getAll(),
+      ]);
+      setCursos(c); setModulos(m); setAulas(a); setCategorias(cat);
+    } catch {
+      // servidor indisponível
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function criarCurso(e: { preventDefault(): void }) {

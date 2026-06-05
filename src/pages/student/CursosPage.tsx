@@ -34,20 +34,25 @@ export default function CursosStudentPage() {
 
   const carregar = useCallback(async () => {
     if (!usuario) return;
-    const [c, cat, m, a, mat, prog, aval, cert] = await Promise.all([
-      cursoService.getAll(),
-      categoriaService.getAll(),
-      moduloService.getAll(),
-      aulaService.getAll(),
-      matriculaService.getByUsuario(usuario.id),
-      progressoAulaService.getByUsuario(usuario.id),
-      avaliacaoService.getAll(),
-      certificadoService.getByUsuario(usuario.id),
-    ]);
-    setCursos(c); setCategorias(cat); setModulos(m); setAulas(a);
-    setMatriculas(mat); setProgressos(prog);
-    setAvaliacoes(aval); setCertificados(cert);
-    setLoading(false);
+    try {
+      const [c, cat, m, a, mat, prog, aval, cert] = await Promise.all([
+        cursoService.getAll(),
+        categoriaService.getAll(),
+        moduloService.getAll(),
+        aulaService.getAll(),
+        matriculaService.getByUsuario(usuario.id),
+        progressoAulaService.getByUsuario(usuario.id),
+        avaliacaoService.getAll(),
+        certificadoService.getByUsuario(usuario.id),
+      ]);
+      setCursos(c); setCategorias(cat); setModulos(m); setAulas(a);
+      setMatriculas(mat); setProgressos(prog);
+      setAvaliacoes(aval); setCertificados(cert);
+    } catch {
+      // servidor indisponível — mantém arrays vazios
+    } finally {
+      setLoading(false);
+    }
   }, [usuario]);
 
   useEffect(() => { carregar(); }, [carregar]);

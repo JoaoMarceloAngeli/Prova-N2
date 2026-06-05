@@ -24,12 +24,17 @@ export default function TrilhasPage() {
 
   async function carregar() {
     setLoading(true);
-    const [t, c, cat, tc] = await Promise.all([
-      trilhaService.getAll(), cursoService.getAll(),
-      categoriaService.getAll(), trilhaCursoService.getAll(),
-    ]);
-    setTrilhas(t); setCursos(c); setCategorias(cat); setTrilhasCursos(tc);
-    setLoading(false);
+    try {
+      const [t, c, cat, tc] = await Promise.all([
+        trilhaService.getAll(), cursoService.getAll(),
+        categoriaService.getAll(), trilhaCursoService.getAll(),
+      ]);
+      setTrilhas(t); setCursos(c); setCategorias(cat); setTrilhasCursos(tc);
+    } catch {
+      // servidor indisponível
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function criarTrilha(e: { preventDefault(): void }) {

@@ -20,7 +20,7 @@ export default function CertificadosPage() {
       trilhaService.getAll(),
     ]).then(([c, u, cs, t]) => {
       setCertificados(c); setUsuarios(u); setCursos(cs); setTrilhas(t);
-    }).finally(() => setLoading(false));
+    }).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   return (
