@@ -66,6 +66,21 @@ export default function LoginPage() {
         .jm-btn { background:linear-gradient(135deg,#1a3a8f,#1565c0); border:none; border-radius:8px; color:#fff; font-weight:700; font-size:1rem; padding:.65rem; width:100%; }
       `}</style>
       <div className="jm-card">
+        <div className="d-flex flex-column align-items-center mb-4">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 48" width="140" height="56" style={{ marginBottom: "0.5rem" }}>
+            <defs>
+              <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" style={{ stopColor: "#1a3a8f" }} />
+                <stop offset="100%" style={{ stopColor: "#1565c0" }} />
+              </linearGradient>
+            </defs>
+            <rect width="48" height="48" rx="10" fill="url(#logoGrad)" />
+            <text x="24" y="50%" dominantBaseline="middle" textAnchor="middle" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="20" fill="#ffffff" letterSpacing="-1">JM</text>
+            <text x="62" y="30" fontFamily="Arial, sans-serif" fontWeight="800" fontSize="16" fill="#1a3a8f">JM</text>
+            <text x="81" y="30" fontFamily="Arial, sans-serif" fontWeight="400" fontSize="16" fill="#1565c0">Cursos</text>
+            <text x="62" y="44" fontFamily="Arial, sans-serif" fontWeight="400" fontSize="8" fill="#6b7a9a" letterSpacing="2">PLATAFORMA EAD</text>
+          </svg>
+        </div>
         <div className="d-flex gap-2 justify-content-center mb-4">
           <button className={`jm-toggle ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setErro(""); }}>Entrar</button>
           <button className={`jm-toggle ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setErro(""); }}>Criar conta</button>
