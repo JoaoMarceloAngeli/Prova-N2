@@ -114,4 +114,5 @@ export interface Pagamento {
   dataPagamento: string;
   metodoPagamento: "Cartão de Crédito" | "Cartão de Débito" | "Pix" | "Boleto";
   idTransacaoGateway: string;
+  dataFim: string;
 }

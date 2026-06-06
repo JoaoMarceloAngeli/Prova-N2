@@ -71,6 +71,7 @@ export default function CheckoutPage() {
         dataPagamento: new Date().toISOString(),
         metodoPagamento: metodo,
         idTransacaoGateway: txnId,
+        dataFim: fim.toISOString(),
       });
 
       setStep("sucesso");
