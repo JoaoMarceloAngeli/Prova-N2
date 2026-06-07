@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Curso, Modulo, Aula, Matricula, ProgressoAula, Avaliacao, Certificado, Categoria } from "../../models";
+import { useNavigate } from "react-router-dom";
+import type { Curso, Modulo, Aula, Matricula, ProgressoAula, Avaliacao, Certificado, Categoria, Assinatura } from "../../models";
 import { cursoService } from "../../services/cursoService";
 import { moduloService } from "../../services/moduloService";
 import { aulaService } from "../../services/aulaService";
@@ -8,6 +9,7 @@ import { progressoAulaService } from "../../services/progressoAulaService";
 import { avaliacaoService } from "../../services/avaliacaoService";
 import { certificadoService } from "../../services/certificadoService";
 import { categoriaService } from "../../services/categoriaService";
+import { assinaturaService } from "../../services/assinaturaService";
 import { useAuth } from "../../context/AuthContext";
 
 function gerarCodigo() {
@@ -16,6 +18,8 @@ function gerarCodigo() {
 
 export default function CursosStudentPage() {
   const { usuario } = useAuth();
+  const navigate = useNavigate();
+  const [assinaturaAtiva, setAssinaturaAtiva] = useState<Assinatura | null>(null);
   const [cursos, setCursos] = useState<Curso[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [modulos, setModulos] = useState<Modulo[]>([]);
@@ -35,7 +39,7 @@ export default function CursosStudentPage() {
   const carregar = useCallback(async () => {
     if (!usuario) return;
     try {
-      const [c, cat, m, a, mat, prog, aval, cert] = await Promise.all([
+      const [c, cat, m, a, mat, prog, aval, cert, assinaturas] = await Promise.all([
         cursoService.getAll(),
         categoriaService.getAll(),
         moduloService.getAll(),
@@ -44,10 +48,12 @@ export default function CursosStudentPage() {
         progressoAulaService.getByUsuario(usuario.id),
         avaliacaoService.getAll(),
         certificadoService.getByUsuario(usuario.id),
+        assinaturaService.getAtiva(usuario.id),
       ]);
       setCursos(c); setCategorias(cat); setModulos(m); setAulas(a);
       setMatriculas(mat); setProgressos(prog);
       setAvaliacoes(aval); setCertificados(cert);
+      setAssinaturaAtiva(assinaturas[0] ?? null);
     } catch {
       // servidor indisponível — mantém arrays vazios
     } finally {
@@ -119,6 +125,24 @@ export default function CursosStudentPage() {
   const cursosFiltrados = filtroCategoria ? cursos.filter(c => c.idCategoria === filtroCategoria) : cursos;
 
   if (loading) return <div className="text-center py-5"><div className="spinner-border text-primary" /></div>;
+
+  if (!assinaturaAtiva) {
+    return (
+      <div className="text-center py-5">
+        <i className="bi bi-lock-fill d-block mb-3" style={{ fontSize: "3rem", color: "#1565c0" }} />
+        <h5 className="fw-bold mb-2" style={{ color: "#0d1b4b" }}>Acesso restrito</h5>
+        <p className="text-muted mb-4">Você precisa de um plano ativo para acessar os cursos.</p>
+        <button
+          className="btn text-white px-4"
+          style={{ background: "linear-gradient(135deg,#1a3a8f,#1565c0)" }}
+          onClick={() => navigate("/checkout")}
+        >
+          <i className="bi bi-credit-card me-2" />
+          Contratar um plano
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div>
