@@ -1,7 +1,8 @@
+import { type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-export default function Navbar() {
+export default function Navbar({ children }: { children?: ReactNode }) {
   const { usuario, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -13,13 +14,14 @@ export default function Navbar() {
   const homeLink = usuario?.role === "admin" ? "/admin" : "/student";
 
   return (
-    <nav className="navbar navbar-expand-lg bg-white border-bottom shadow-sm px-4 py-2">
+    <nav className="navbar navbar-expand-lg bg-white border-bottom shadow-sm px-3 px-md-4 py-2" style={{ position: "sticky", top: 0, zIndex: 1042 }}>
+      {children}
       <Link className="navbar-brand fw-bold fs-5 text-decoration-none" to={homeLink}>
         <span style={{ color: "#0d1b4b" }}>JM </span>
         <span style={{ color: "#1565c0" }}>Cursos</span>
       </Link>
 
-      <div className="ms-auto d-flex align-items-center gap-3">
+      <div className="ms-auto d-flex align-items-center gap-2 gap-md-3">
         <Link
           to={homeLink}
           className="btn btn-link text-decoration-none p-0 fw-medium"
