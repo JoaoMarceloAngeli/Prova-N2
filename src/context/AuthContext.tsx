@@ -48,8 +48,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       role,
       dataCadastro: new Date().toISOString(),
     });
-    setUsuario(newUser);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(newUser));
     return newUser;
   }
 

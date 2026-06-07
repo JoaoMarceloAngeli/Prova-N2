@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [senha, setSenha] = useState("");
   const [confirmar, setConfirmar] = useState("");
   const [erro, setErro] = useState("");
+  const [sucesso, setSucesso] = useState("");
   const [loading, setLoading] = useState(false);
 
   const { login, register, usuario } = useAuth();
@@ -41,9 +42,10 @@ export default function LoginPage() {
       } else {
         if (senha.length < 6) { setErro("A senha deve ter pelo menos 6 caracteres."); return; }
         if (senha !== confirmar) { setErro("As senhas não coincidem."); return; }
-        const newUser = await register(nome, email, senha);
-        if (newUser.role === "admin") navigate("/admin");
-        else navigate("/checkout");
+        await register(nome, email, senha);
+        setSucesso("Conta criada com sucesso! Faça login para continuar.");
+        setMode("login");
+        setNome(""); setSenha(""); setConfirmar("");
       }
     } catch {
       setErro("Erro ao conectar. Verifique se o servidor está rodando.");
@@ -82,8 +84,8 @@ export default function LoginPage() {
       </div>
       <div className="jm-card">
         <div className="d-flex gap-2 justify-content-center mb-4">
-          <button className={`jm-toggle ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setErro(""); }}>Entrar</button>
-          <button className={`jm-toggle ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setErro(""); }}>Criar conta</button>
+          <button className={`jm-toggle ${mode === "login" ? "active" : ""}`} onClick={() => { setMode("login"); setErro(""); setSucesso(""); }}>Entrar</button>
+          <button className={`jm-toggle ${mode === "register" ? "active" : ""}`} onClick={() => { setMode("register"); setErro(""); setSucesso(""); }}>Criar conta</button>
         </div>
         <form onSubmit={handleSubmit}>
           {mode === "register" && (
@@ -106,6 +108,9 @@ export default function LoginPage() {
               <input type="password" className="jm-input" value={confirmar} onChange={e => setConfirmar(e.target.value)} required />
             </div>
           )}
+          {sucesso && (
+            <div className="rounded-2 p-2 mb-3 small" style={{ background: "#f0fff4", border: "1px solid #a3cfbb", color: "#0a5c36" }}>{sucesso}</div>
+          )}
           {erro && (
             <div className="rounded-2 p-2 mb-3 small" style={{ background: "#fff0f0", border: "1px solid #f5c2c7", color: "#842029" }}>{erro}</div>
           )}
@@ -118,7 +123,7 @@ export default function LoginPage() {
           <button
             className="border-0 bg-transparent p-0 fw-semibold"
             style={{ color: "#1565c0", cursor: "pointer" }}
-            onClick={() => { setMode(mode === "login" ? "register" : "login"); setErro(""); }}
+            onClick={() => { setMode(mode === "login" ? "register" : "login"); setErro(""); setSucesso(""); }}
           >
             {mode === "login" ? "Criar conta" : "Entrar"}
           </button>
