@@ -22,14 +22,6 @@ export default function Navbar({ children }: { children?: ReactNode }) {
       </Link>
 
       <div className="ms-auto d-flex align-items-center gap-2 gap-md-3">
-        <Link
-          to={homeLink}
-          className="btn btn-link text-decoration-none p-0 fw-medium"
-          style={{ color: "#1565c0" }}
-        >
-          Dashboard
-        </Link>
-
         {usuario && (
           <span className="text-muted small d-flex align-items-center gap-2">
             {usuario.nomeCompleto.split(" ")[0]}
